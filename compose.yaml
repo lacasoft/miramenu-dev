@@ -9,6 +9,7 @@ services:
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?run npm run env:init}
       DB_NAME: ${DB_NAME:?}
+      DB_TEST_NAME: ${DB_TEST_NAME:?run npm run env:init -- --update}
       DB_MIGRATOR_USER: ${DB_MIGRATOR_USER:?}
       DB_MIGRATOR_PASSWORD: ${DB_MIGRATOR_PASSWORD:?}
       DB_BUSINESS_ACCESS_USER: ${DB_BUSINESS_ACCESS_USER:?}

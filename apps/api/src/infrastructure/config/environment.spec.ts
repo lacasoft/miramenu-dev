@@ -10,6 +10,8 @@ const example = (label: string) => `example_${label}_0123456789abcdef`;
 const validEnvironment = (): Record<string, string> => ({
   PORT: '3000',
   CORS_ALLOWED_ORIGINS: '',
+  PUBLIC_SITE_URL: 'http://miramenu.localhost:5173',
+  ADMIN_APP_URL: 'http://admin.miramenu.localhost:5174',
   DB_HOST: '127.0.0.1',
   DB_PORT: '55432',
   DB_NAME: 'miramenu',
@@ -78,6 +80,12 @@ describe('parseEnvironment', () => {
     expect(config.database.poolMaxPerContext).toBe(5);
     expect(config.redis.cacheTimeoutMs).toBe(100);
     expect(config.healthCheckTimeoutMs).toBe(1000);
+    expect(config.trustProxyHops).toBe(0);
+    expect(config.adminSession).toEqual({ idleMinutes: 60, absoluteHours: 12 });
+    expect(config.resolutionCache).toEqual({
+      refreshSeconds: 60,
+      ttlHours: 24,
+    });
     expect(config.mail.secure).toBe(false);
   });
 
@@ -104,6 +112,23 @@ describe('parseEnvironment', () => {
     expect(message).toContain('PORT is invalid');
     expect(message).not.toContain('example_short');
     expect(message).not.toContain('70000');
+  });
+
+  it('takes the public site and the admin app as bare http(s) origins', () => {
+    const env = validEnvironment();
+    expect(parseEnvironment(env).publicSiteUrl).toBe(
+      'http://miramenu.localhost:5173',
+    );
+
+    env.PUBLIC_SITE_URL = 'https://mirame.nu/menu';
+    expect(problemsOf(env)).toContain('PUBLIC_SITE_URL is invalid');
+
+    env.PUBLIC_SITE_URL = 'https://mirame.nu';
+    env.ADMIN_APP_URL = 'ftp://admin.mirame.nu';
+    expect(problemsOf(env)).toContain('ADMIN_APP_URL is invalid');
+
+    delete env.ADMIN_APP_URL;
+    expect(problemsOf(env)).toContain('ADMIN_APP_URL is missing');
   });
 
   it('parses the CORS allowlist and rejects anything that is not a bare origin', () => {

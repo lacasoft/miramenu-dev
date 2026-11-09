@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { type ErrorResponse, GENERIC_ERROR_CODES } from '@miramenu/contracts';
 import type { Request, Response } from 'express';
+import { ApiException } from './api-exception';
 import { requestIdOf } from './request-id';
 import { RequestValidationException } from './request-validation';
 
@@ -29,6 +30,7 @@ const CODE_BY_STATUS: Readonly<Record<number, string>> = {
 const INTERNAL_ERROR_MESSAGE = 'Internal server error';
 
 export function errorCodeFor(exception: unknown, status: number): string {
+  if (exception instanceof ApiException) return exception.code;
   if (exception instanceof RequestValidationException)
     return GENERIC_ERROR_CODES.VALIDATION_FAILED;
   return CODE_BY_STATUS[status] ?? `HTTP_${status}`;
@@ -95,6 +97,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
       );
     }
 
+    if (exception instanceof ApiException) {
+      for (const [name, value] of Object.entries(exception.headers)) {
+        response.setHeader(name, value);
+      }
+    }
     response.status(status).json(body);
   }
 }
