@@ -165,6 +165,7 @@ Corridos el 2026-11-09 desde la raíz con Node 26.13 (✓ pasa · ✗ falla tal 
 
 - Hoy solo hay desarrollo local, con todo en Docker (aún no hay `docker-compose`). Nube, servicios y región se definen al ir a producción; región inicial México.
 - CI en GitHub Actions (`.github/workflows/ci.yml`), en cada PR a `master` y cada push a `master`, con Node de `.nvmrc` e instalación `npm ci --ignore-scripts`. Cuatro jobs en paralelo: `npm run lint` + `check` de tokens · `npm test` · `npm run build --workspaces --if-present` · `npm audit --audit-level=high`. Actions fijadas por SHA. Sin despliegue todavía.
+- `master` protegida con el ruleset "Protect master" de GitHub (2026-11-09), sin bypass, ni para administradores: solo se cambia por PR (0 aprobaciones), con los 4 jobs del CI en verde y la rama al día con `master`; no admite push forzado ni borrado. Si cambia el nombre de un job en `ci.yml`, hay que actualizar el ruleset, o los PRs se quedan esperando un check que ya no existe. El gate de cobertura está pendiente como HB-01 en `../miramenu/backlog.md`.
 - Redis con AOF `appendfsync everysec` y `maxmemory-policy noeviction` ([ADR-0012](docs/adr/0012-mantener-la-cola-de-medicion-en-redis-con-aof-y-noeviction.md)).
 
 ## Variables de entorno críticas
