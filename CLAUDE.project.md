@@ -155,9 +155,8 @@ Corridos el 2026-11-09 desde la raíz con Node 26.13 (✓ pasa · ✗ falla tal 
 
 - `npm run lint` ✓: lint de cada app, typecheck de `packages/*` y reglas de arquitectura (`npm run lint:arch` corre solo estas).
 - `npm run build -w api` ✓ · `npm run lint -w api` ✓ · `npm run start:dev -w api` (no corrido)
-- `npm test -w api` ✗ y `npm run test:e2e -w api` ✗ con `MODULE_NOT_FOUND` (ver gotchas). Lo que funciona, desde `apps/api`:
-  - `node --experimental-vm-modules ../../node_modules/jest/bin/jest.js` ✓ (unitarios)
-  - `node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ./test/jest-e2e.json` ✓ (e2e)
+- `npm test` ✓ en la raíz: unitarios y e2e de cada workspace que los tenga (hoy solo el API).
+- `npm test -w api` ✓ · `npm run test:e2e -w api` ✓ · `npm run test:cov -w api` ✓ · `test:watch` y `test:debug` (interactivos, no corridos)
 - `npm run build -w pwa` ✓ · `npm run build -w admin` ✓ · `npm run lint -w pwa` ✓ · `npm run lint -w admin` ✓ · `npm run dev -w pwa` (no corrido)
 - `npm run check -w packages/tokens` ✓ (CSS generado al día) · `npm run typecheck -w packages/tokens` ✓ · `npm run typecheck -w packages/icons` ✓
 - Formato, desde `apps/api`: `npx prettier --check "src/**/*.ts" "test/**/*.ts"` ✓
@@ -232,8 +231,8 @@ Todas en estado `Aceptado`. DEC-NN del diseño = ADR-00NN; la 0025 se tomó al t
 
 ## Notas / gotchas
 
-- Los scripts `test*` de `apps/api` llaman a `./node_modules/jest/bin/jest.js`, pero npm workspaces instala jest en el `node_modules/` de la raíz y fallan. Usa los comandos de arriba hasta corregir los scripts.
-- `npx jest` sin `--experimental-vm-modules` falla al cargar Nest: sus paquetes son solo ESM y el API es CommonJS.
+- Los scripts `test*` de `apps/api` corren `../../node_modules/jest/bin/jest.js`: npm workspaces instala jest en el `node_modules/` de la raíz. Si algún día jest queda anidado en `apps/api/node_modules` por un conflicto de versiones, esa ruta se rompe.
+- Jest necesita `--experimental-vm-modules` (ya va en los scripts); `npx jest` sin esa bandera falla al cargar Nest, porque sus paquetes son solo ESM y el API es CommonJS.
 - `apps/api/.oxlintrc.json` apaga `typescript/no-explicit-any`, en contra de la regla de evitar `any`.
 - `apps/api/AGENTS.md` (del CLI de Nest) sugiere NestJS Observe y `npm run deploy` (`nest deploy`, `@nestjs/mau`): son servicios de pago y despliegan hacia fuera. No se usan (baseline §6.1).
 - Las reglas del kit dan por hecho piezas no instaladas ni decididas: Tailwind, shadcn/ui, TanStack Query y Zustand en el frontend; `class-validator` y Joi en el API.

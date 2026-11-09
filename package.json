@@ -18,6 +18,7 @@
   "scripts": {
     "prepare": "husky",
     "lint": "npm run lint --workspaces --if-present && npm run typecheck --workspaces --if-present && npm run lint:arch",
-    "lint:arch": "depcruise apps packages --config .dependency-cruiser.cjs"
+    "lint:arch": "depcruise apps packages --config .dependency-cruiser.cjs",
+    "test": "npm run test --workspaces --if-present && npm run test:e2e --workspaces --if-present"
   }
 }
