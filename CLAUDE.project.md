@@ -36,15 +36,15 @@ Claves: Like único `(sucursal, platillo, comensal o dispositivo)` · AjusteSucu
 
 ## Stack tecnológico
 
-- Monorepo con npm workspaces (`apps/*`, `packages/*`) y un solo `package-lock.json`; las dependencias quedan en el `node_modules/` de la raíz. Node local v25.8.1 (no hay `engines` ni `.nvmrc`).
+- Monorepo con npm workspaces (`apps/*`, `packages/*`) y un solo `package-lock.json`; las dependencias quedan en el `node_modules/` de la raíz. **Node 26 LTS** (`.nvmrc` y `engines` en la raíz; decidido 2026-11-09): usa `nvm use`.
 - `apps/api`: NestJS 12.4 (`platform-express`), TypeScript 6.0, CommonJS que carga los paquetes ESM de Nest con `require(esm)`. Jest 30 + ts-jest + supertest. Oxlint 1.93 type-aware y Prettier 3.9.
 - `apps/pwa` y `apps/admin`: React 19.3, Vite 8.3, TypeScript 7.0 (instalado en cada app), Oxlint. Sin ESLint ni runner de tests.
-- Raíz: Husky 9 + commitlint 21 (`config-conventional`) en `commit-msg`.
+- Raíz: Husky 9 + commitlint 21 (`config-conventional`) en `commit-msg`; dependency-cruiser 18.7.1 para los límites de arquitectura (`.dependency-cruiser.cjs`).
 - Decidido en el diseño, aún sin instalar: Postgres (un esquema por contexto), Redis, `ffmpeg`, almacenamiento de objetos y Docker en local. ORM: TypeORM ([ADR-0025](docs/adr/0025-usar-typeorm-con-migraciones-revisadas-a-mano.md)).
 
 ## Estructura del repositorio
 
-- `apps/api` — monolito modular, un módulo por contexto en `src/modules/<contexto>/`. Hoy están vacíos y con nombre en español: renómbralos según el glosario antes de agregar código. Los workers de medios y de medición son parte del mismo monolito.
+- `apps/api` — monolito modular, un módulo por contexto en `src/modules/<contexto>/`, con los nombres del glosario (`business-access`, `catalog`, `diners`, `interactions`, `measurement`); hoy están vacíos. Los workers de medios y de medición son parte del mismo monolito.
 - `apps/pwa` — PWA del comensal. `apps/admin` — CMS, publicación, moderación y dashboard. Las dos siguen siendo la plantilla de Vite.
 - `packages/tokens` (`@miramenu/tokens`, tokens del sistema visual y su CSS generado) y `packages/icons` (`@miramenu/icons`, geometría de iconos); reglas en `.claude/rules/design-system.md`. Aquí van también los paquetes sin DOM (estado, cliente de la API, reglas de la PWA, tipos) y las interfaces por plataforma de IndexedDB, `sendBeacon` y `visibilitychange` ([ADR-0024](docs/adr/0024-separar-la-logica-del-frontend-en-paquetes-sin-dom.md)).
 - `docs/adr/` — ADRs. `docs/diseno-visual/` — especificación y pantallas aprobadas (`dashboard.png` solo en local: es de terceros). Del resto de `docs/`, nada se versiona. `.pi/` — configuración del kit para Pi Agent.
@@ -146,19 +146,21 @@ Errores `{ code, message, requestId }` · listas por cursor (20 por defecto, 50 
 
 - Identificadores, rutas, tablas y esquemas en inglés según el glosario; documentación y ADRs en español.
 - Módulos de Nest en `src/modules/<contexto>/` con carpeta kebab-case; esquemas de Postgres en snake_case.
+- Cada contexto expone su contrato en `src/modules/<contexto>/index.ts` (su módulo de Nest, servicios y tipos públicos), nunca entidades ni repositorios. Los demás contextos importan solo de ahí.
 - Prettier solo está configurado en `apps/api` (`singleQuote`, `trailingComma: all`). En las tres apps el linter es Oxlint, no ESLint.
 
 ## Comandos principales
 
-Corridos el 2026-11-09 desde la raíz (✓ pasa · ✗ falla tal como está):
+Corridos el 2026-11-09 desde la raíz con Node 26.13 (✓ pasa · ✗ falla tal como está):
 
+- `npm run lint` ✓: lint de cada app, typecheck de `packages/*` y reglas de arquitectura (`npm run lint:arch` corre solo estas).
 - `npm run build -w api` ✓ · `npm run lint -w api` ✓ · `npm run start:dev -w api` (no corrido)
 - `npm test -w api` ✗ y `npm run test:e2e -w api` ✗ con `MODULE_NOT_FOUND` (ver gotchas). Lo que funciona, desde `apps/api`:
   - `node --experimental-vm-modules ../../node_modules/jest/bin/jest.js` ✓ (unitarios)
   - `node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ./test/jest-e2e.json` ✓ (e2e)
 - `npm run build -w pwa` ✓ · `npm run build -w admin` ✓ · `npm run lint -w pwa` ✓ · `npm run lint -w admin` ✓ · `npm run dev -w pwa` (no corrido)
 - `npm run check -w packages/tokens` ✓ (CSS generado al día) · `npm run typecheck -w packages/tokens` ✓ · `npm run typecheck -w packages/icons` ✓
-- Formato, desde `apps/api`: `npx prettier --check "src/**/*.ts" "test/**/*.ts"` ✗ hoy por `src/app.module.ts`.
+- Formato, desde `apps/api`: `npx prettier --check "src/**/*.ts" "test/**/*.ts"` ✓
 
 ## Despliegue / infraestructura
 
@@ -178,13 +180,18 @@ Corridos el 2026-11-09 desde la raíz (✓ pasa · ✗ falla tal como está):
 - PWA, admin y `packages/`: todavía sin runner de tests.
 - Prueba de aislamiento obligatoria ([ADR-0019](docs/adr/0019-aislar-negocios-con-chequeo-por-modulo-y-404.md)): recorre todas las rutas `/admin` con un usuario de otro negocio y otro de otra sucursal, y exige 404. Cada ruta nueva entra en ella.
 
-### Restricciones de arquitectura (intención: sin automatizar)
+### Restricciones de arquitectura
 
-- Ningún módulo importa entidades, repositorios ni internos de otro contexto: solo sus contratos exportados.
-- Ningún módulo consulta el esquema de Postgres de otro contexto.
-- Comensales no escribe en Interacciones; Interacciones no lee el celular ni el correo del comensal.
-- Los controladores no deciden permisos ni tienen reglas de negocio; el worker de medios no publica, solo llama al contrato de Catálogo.
-- `apps/pwa` y `apps/admin` no se importan entre sí ni tienen lógica; `packages/*` no usan el DOM ni APIs del navegador fuera de sus adaptadores.
+Las comprueba `.dependency-cruiser.cjs` en `npm run lint` (script `lint:arch`). El 2026-11-09 cada regla falló a propósito con una violación de prueba.
+
+- Cada contexto usa solo los de su columna _Usa de otros_: business-access y diners, ninguno; catalog → business-access; interactions → catalog, diners, business-access; measurement → catalog, business-access, interactions → automatizada: reglas `<contexto>-uses-only-declared-contexts`. Con eso no puede haber ciclos entre contextos, y cubre "Comensales no escribe en Interacciones".
+- Otro contexto solo se usa por su `index.ts`, nunca por sus entidades, repositorios ni internos → automatizada: `context-public-entry-only` y `context-entry-hides-persistence` (el `index.ts` no reexporta `*.entity.ts` ni `*.repository.ts`). Cuenta también los imports solo de tipos.
+- Ningún módulo consulta el esquema de Postgres de otro contexto → parcial: las reglas impiden usar entidades ajenas, no el SQL crudo ni `getRepository('Nombre')` con texto. Protección fuerte propuesta, sin decidir: un usuario de Postgres por esquema, con permisos solo sobre el suyo.
+- Interacciones no lee el celular ni el correo del comensal → parcial: solo llega a Comensales por su `index.ts`; que "Nombre público" devuelva solo el nombre es un test de contrato (skill `tdd`).
+- Los controladores no tienen reglas de negocio → parcial: `controllers-no-persistence` (un controlador no importa entidades ni repositorios). Que no decidan permisos es comportamiento: lo cubre la prueba de aislamiento.
+- El worker de medios no publica, solo llama al contrato de Catálogo → intención: el worker todavía no existe ni tiene carpeta.
+- `apps/pwa` y `apps/admin` no se importan entre sí → automatizada: `pwa-does-not-import-admin` y `admin-does-not-import-pwa`. Que las apps no tengan lógica → intención: es criterio de revisión, no una dependencia.
+- `packages/*` sin DOM → automatizada en dos partes: `packages-without-dom-renderer` (sin `react-dom`) y el typecheck de cada paquete con `lib: ["ES2022"]`, sin DOM. Débil: un paquete nuevo que agregue `DOM` a su `tsconfig` pasaría; los adaptadores de navegador, cuando existan, irán en su propio paquete con una excepción explícita.
 
 ### Tests de recuperación (pendientes; con la skill `tdd`)
 
@@ -231,6 +238,7 @@ Todas en estado `Aceptado`. DEC-NN del diseño = ADR-00NN; la 0025 se tomó al t
 - `apps/api/AGENTS.md` (del CLI de Nest) sugiere NestJS Observe y `npm run deploy` (`nest deploy`, `@nestjs/mau`): son servicios de pago y despliegan hacia fuera. No se usan (baseline §6.1).
 - Las reglas del kit dan por hecho piezas no instaladas ni decididas: Tailwind, shadcn/ui, TanStack Query y Zustand en el frontend; `class-validator` y Joi en el API.
 - Solo hay hook `commit-msg` (commitlint); no hay `pre-commit` con lint-staged.
+- Versión de Node: dependency-cruiser rechaza Node 25 (`lint:arch` falla con "Your node version … is not supported"), y Jest y el CLI de Nest fallan en Node 22 (`ERR_REQUIRE_CYCLE_MODULE`, `createRequireEsmError`). Usa Node 26 (`nvm use`).
 - Un solo Redis con `noeviction`: al llenarse rechaza escrituras en vez de expulsar claves, así que toda clave de caché, límite o código lleva vencimiento.
 
 ## Pendiente de confirmar
@@ -241,5 +249,5 @@ Todas en estado `Aceptado`. DEC-NN del diseño = ADR-00NN; la 0025 se tomó al t
 - Cómo corren los workers: se infiere que comparten el código de `apps/api` con otro punto de entrada; falta decidirlo.
 - Sesión del admin (cookie o token), librería de colas (BullMQ es el default del kit) y de validación.
 - Retención de los datos de comensales frente a la ley mexicana de datos personales (RNF-07).
-- Versión de Node objetivo y runner de tests del frontend.
+- Runner de tests del frontend.
 - Nombres del glosario y de las rutas en inglés (propuestos al trasladar el diseño).
