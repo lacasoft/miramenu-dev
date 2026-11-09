@@ -37,14 +37,18 @@ Claves: Like único `(sucursal, platillo, comensal o dispositivo)` · AjusteSucu
 ## Stack tecnológico
 
 - Monorepo con npm workspaces (`apps/*`, `packages/*`) y un solo `package-lock.json`; las dependencias quedan en el `node_modules/` de la raíz. **Node 26 LTS** (`.nvmrc` y `engines` en la raíz; decidido 2026-11-09): usa `nvm use`.
-- `apps/api`: NestJS 12.4 (`platform-express`), TypeScript 6.0, CommonJS que carga los paquetes ESM de Nest con `require(esm)`. Jest 30 + ts-jest + supertest. Oxlint 1.93 type-aware y Prettier 3.9.
+- `apps/api`: NestJS 12.4 (`platform-express`), TypeScript 6.0, CommonJS que carga los paquetes ESM con `require(esm)`. TypeORM 1.1 + `pg`, `ioredis` 5, `@aws-sdk/client-s3`, `nodemailer`, Zod 4, `helmet`. Jest 30 + ts-jest + supertest. Oxlint 1.93 type-aware y Prettier 3.9.
 - `apps/pwa` y `apps/admin`: React 19.3, Vite 8.3, TypeScript 7.0 (instalado en cada app), Oxlint. Sin ESLint ni runner de tests.
 - Raíz: Husky 9 + commitlint 21 (`config-conventional`) en `commit-msg`; dependency-cruiser 18.7.1 para los límites de arquitectura (`.dependency-cruiser.cjs`).
-- Decidido en el diseño, aún sin instalar: Postgres (un esquema por contexto), Redis, `ffmpeg`, almacenamiento de objetos y Docker en local. ORM: TypeORM ([ADR-0025](docs/adr/0025-usar-typeorm-con-migraciones-revisadas-a-mano.md)).
+- Servicios locales en Docker (`compose.yaml`, imágenes fijadas por versión y digest): Postgres 18, Redis 8, SeaweedFS (S3) y Mailpit (SMTP) ([ADR-0030](docs/adr/0030-usar-seaweedfs-y-mailpit-en-local-detras-de-adaptadores-s3-y-smtp.md)). `ffmpeg` llega con el worker de medios. ORM: TypeORM ([ADR-0025](docs/adr/0025-usar-typeorm-con-migraciones-revisadas-a-mano.md)).
 
 ## Estructura del repositorio
 
 - `apps/api` — monolito modular, un módulo por contexto en `src/modules/<contexto>/`, con los nombres del glosario (`business-access`, `catalog`, `diners`, `interactions`, `measurement`); hoy están vacíos. Los workers de medios y de medición son parte del mismo monolito.
+  - `src/infrastructure/` — lo que sirve a los contextos y nunca depende de ellos: `config/` (entorno validado), `database/` (una conexión por contexto, migrador y migraciones de esquemas), `http/` (sobre de error, id de solicitud, validación, Helmet, CORS), `redis/`, `storage/` (puerto `ObjectStorage`), `mail/` (puerto `Mailer`) y `health/`.
+  - Las migraciones de cada contexto van en `src/modules/<contexto>/migrations/`.
+- `packages/contracts` (`@miramenu/contracts`) — contratos HTTP en Zod, sin DOM ni Node, que comparten el API y las apps ([ADR-0026](docs/adr/0026-validar-con-zod-y-compartir-contratos-en-packages-contracts.md)). Se compila a `dist/` antes que el API.
+- `compose.yaml`, `config/` (arranque de Postgres y SeaweedFS en local) y `scripts/init-dev-env.mjs` (genera el `.env` de desarrollo).
 - `apps/pwa` — PWA del comensal. `apps/admin` — CMS, publicación, moderación y dashboard. Las dos siguen siendo la plantilla de Vite.
 - `packages/tokens` (`@miramenu/tokens`, tokens del sistema visual y su CSS generado) y `packages/icons` (`@miramenu/icons`, geometría de iconos); reglas en `.claude/rules/design-system.md`. Aquí van también los paquetes sin DOM (estado, cliente de la API, reglas de la PWA, tipos) y las interfaces por plataforma de IndexedDB, `sendBeacon` y `visibilitychange` ([ADR-0024](docs/adr/0024-separar-la-logica-del-frontend-en-paquetes-sin-dom.md)).
 - `docs/adr/` — ADRs. `docs/diseno-visual/` — especificación y pantallas aprobadas (`dashboard.png` solo en local: es de terceros). Del resto de `docs/`, nada se versiona. `.pi/` — configuración del kit para Pi Agent.
@@ -148,14 +152,19 @@ Errores `{ code, message, requestId }` · listas por cursor (20 por defecto, 50 
 - Módulos de Nest en `src/modules/<contexto>/` con carpeta kebab-case; esquemas de Postgres en snake_case.
 - Cada contexto expone su contrato en `src/modules/<contexto>/index.ts` (su módulo de Nest, servicios y tipos públicos), nunca entidades ni repositorios. Los demás contextos importan solo de ahí.
 - Prettier solo está configurado en `apps/api` (`singleQuote`, `trailingComma: all`). En las tres apps el linter es Oxlint, no ESLint.
+- Configuración: solo `infrastructure/config` lee `process.env`, una vez al arrancar; el resto inyecta `APP_CONFIG` (objeto tipado). Una variable nueva se agrega al esquema de `environment.ts` y a `.env.example`.
+- Errores: todo sale con el sobre de `@miramenu/contracts` (`{ code, message, requestId }`); un 500 nunca expone su mensaje. Validación: cada parámetro declara su esquema Zod (`@Param('id', { schema })`, `@Body({ schema })`).
+- Un contexto llega a sus datos solo con `TypeOrmModule.forFeature([...], '<contexto>')`; a S3 y SMTP solo por los puertos `ObjectStorage` y `Mailer`.
 
 ## Comandos principales
 
 Corridos el 2026-11-09 desde la raíz con Node 26.13 (✓ pasa · ✗ falla tal como está):
 
-- `npm run lint` ✓: lint de cada app, typecheck de `packages/*` y reglas de arquitectura (`npm run lint:arch` corre solo estas).
-- `npm run build -w api` ✓ · `npm run lint -w api` ✓ · `npm run start:dev -w api` (no corrido)
-- `npm test` ✓ en la raíz: unitarios y e2e de cada workspace que los tenga (hoy solo el API).
+- Primera vez: `npm run env:init` ✓ (crea el `.env` con secretos aleatorios de desarrollo; no lo pisa sin `--force`) → `docker compose up -d --wait` ✓ → `npm run db:migrate -w api` ✓.
+- `npm run lint` ✓: compila `@miramenu/contracts`, lint de cada app, typecheck de `packages/*` y reglas de arquitectura (`npm run lint:arch` corre solo estas).
+- `npm test` ✓ en la raíz: tests de `packages/contracts` (`node --test`), unitarios del API y e2e del API. **Los e2e necesitan los servicios arriba y migrados.**
+- `npm run build -w api` ✓ · `npm run start:dev -w api` ✓ (carga `../../.env`; `GET /health/live` y `/health/dependencies`).
+- `npm run db:revert -w api` ✓ · `npm run db:migration:create -w api -- src/modules/<contexto>/migrations/<Nombre>`.
 - `npm test -w api` ✓ · `npm run test:e2e -w api` ✓ · `npm run test:cov -w api` ✓ · `test:watch` y `test:debug` (interactivos, no corridos)
 - `npm run build -w pwa` ✓ · `npm run build -w admin` ✓ · `npm run lint -w pwa` ✓ · `npm run lint -w admin` ✓ · `npm run dev -w pwa` (no corrido)
 - `npm run check -w packages/tokens` ✓ (CSS generado al día) · `npm run typecheck -w packages/tokens` ✓ · `npm run typecheck -w packages/icons` ✓
@@ -163,21 +172,23 @@ Corridos el 2026-11-09 desde la raíz con Node 26.13 (✓ pasa · ✗ falla tal 
 
 ## Despliegue / infraestructura
 
-- Hoy solo hay desarrollo local, con todo en Docker (aún no hay `docker-compose`). Nube, servicios y región se definen al ir a producción; región inicial México.
-- CI en GitHub Actions (`.github/workflows/ci.yml`), en cada PR a `master` y cada push a `master`, con Node de `.nvmrc` e instalación `npm ci --ignore-scripts`. Cuatro jobs en paralelo: `npm run lint` + `check` de tokens · `npm test` · `npm run build --workspaces --if-present` · `npm audit --audit-level=high`. Actions fijadas por SHA. Sin despliegue todavía.
+- Hoy solo hay desarrollo local, con los servicios en `compose.yaml` (puertos solo en `127.0.0.1`). Nube, servicios y región se definen al ir a producción; región inicial México.
+- Sondas del API: `GET /health/live` es la del balanceador y el orquestador, y nunca toca dependencias. `GET /health/dependencies` responde 503 nombrando las que fallan, y es solo para monitoreo: el API está diseñado para seguir sirviendo con una dependencia caída (menú de la caché si cae Postgres, de Postgres si cae Redis), así que nunca debe sacarlo de rotación.
+- CI en GitHub Actions (`.github/workflows/ci.yml`), en cada PR a `master` y cada push a `master`, con Node de `.nvmrc` e instalación `npm ci --ignore-scripts`. Cuatro jobs en paralelo: `npm run lint` + `check` de tokens · `npm test` (levanta `compose.yaml` con secretos nuevos y migra antes) · `npm run build --workspaces --if-present` · `npm audit --audit-level=high`. Actions fijadas por SHA. Sin despliegue todavía.
 - `master` protegida con el ruleset "Protect master" de GitHub (2026-11-09), sin bypass, ni para administradores: solo se cambia por PR (0 aprobaciones), con los 4 jobs del CI en verde y la rama al día con `master`; no admite push forzado ni borrado. Si cambia el nombre de un job en `ci.yml`, hay que actualizar el ruleset, o los PRs se quedan esperando un check que ya no existe. El gate de cobertura está pendiente como HB-01 en `../miramenu/backlog.md`.
 - Redis con AOF `appendfsync everysec` y `maxmemory-policy noeviction` ([ADR-0012](docs/adr/0012-mantener-la-cola-de-medicion-en-redis-con-aof-y-noeviction.md)).
 
 ## Variables de entorno críticas
 
-- En `.env.example`, comentadas: `NODE_ENV`, `DATABASE_URL`, `REDIS_URL`. `apps/api/src/main.ts` lee `PORT` directo de `process.env` (plantilla; falta la capa de config).
+- Todas en `.env.example`, con su comentario. El API las valida al arrancar y falla nombrando la que falte o sea inválida, nunca su valor: `PORT`, `CORS_ALLOWED_ORIGINS`; `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_MIGRATOR_USER`/`_PASSWORD` y `DB_<CONTEXTO>_USER`/`_PASSWORD` por contexto; `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`; `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `MEDIA_PUBLIC_BASE_URL`; `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM`. Opcionales con valor por defecto: `DB_POOL_MAX_PER_CONTEXT` (5), `REDIS_CACHE_TIMEOUT_MS` (100), `HEALTH_CHECK_TIMEOUT_MS` (1000), `S3_FORCE_PATH_STYLE`, `SMTP_SECURE`, y `SMTP_USER`/`SMTP_PASSWORD` en pareja.
+- Solo para los contenedores locales: `POSTGRES_SUPERUSER_PASSWORD`, `S3_PORT`, `MAILPIT_UI_PORT`, `REDIS_MAXMEMORY`.
 - PWA: los tiempos del feed (imagen 5 s, pausa 10 s) van en su `.env`, con prefijo `VITE_` (nombres por definir).
-- Por declarar al integrarlos: almacenamiento de objetos, proveedor de códigos, proveedor de correo y dominio base.
+- Por declarar al integrarlos: proveedor de códigos y dominio base.
 
 ## Testing
 
-- API: Jest 30 + ts-jest. Unitarios en `src/**/*.spec.ts`, junto al código; e2e en `apps/api/test/*.e2e-spec.ts` con `@nestjs/testing` + supertest. `test:cov` existe, sin umbral configurado.
-- PWA, admin y `packages/`: todavía sin runner de tests.
+- API: Jest 30 + ts-jest. Unitarios en `src/**/*.spec.ts`, junto al código, sin servicios. E2e e integración en `apps/api/test/*.e2e-spec.ts`, contra los servicios reales de `compose.yaml`; `test/support/test-app.ts` arma la app igual que `main.ts` y permite cambiar la configuración (por ejemplo, apuntar Redis a un puerto cerrado). `test:cov` existe, sin umbral configurado.
+- `packages/contracts`: `node --test` con TypeScript nativo de Node 26, sin dependencias. PWA, admin, `tokens` e `icons`: todavía sin runner de tests.
 - Prueba de aislamiento obligatoria ([ADR-0019](docs/adr/0019-aislar-negocios-con-chequeo-por-modulo-y-404.md)): recorre todas las rutas `/admin` con un usuario de otro negocio y otro de otra sucursal, y exige 404. Cada ruta nueva entra en ella.
 
 ### Restricciones de arquitectura
@@ -186,12 +197,14 @@ Las comprueba `.dependency-cruiser.cjs` en `npm run lint` (script `lint:arch`), 
 
 - Cada contexto usa solo los de su columna _Usa de otros_: business-access y diners, ninguno; catalog → business-access; interactions → catalog, diners, business-access; measurement → catalog, business-access, interactions → automatizada: reglas `<contexto>-uses-only-declared-contexts`. Con eso no puede haber ciclos entre contextos, y cubre "Comensales no escribe en Interacciones".
 - Otro contexto solo se usa por su `index.ts`, nunca por sus entidades, repositorios ni internos → automatizada: `context-public-entry-only` y `context-entry-hides-persistence` (el `index.ts` no reexporta `*.entity.ts` ni `*.repository.ts`). Cuenta también los imports solo de tipos.
-- Ningún módulo consulta el esquema de Postgres de otro contexto → parcial: las reglas impiden usar entidades ajenas, no el SQL crudo ni `getRepository('Nombre')` con texto. Protección fuerte propuesta, sin decidir: un usuario de Postgres por esquema, con permisos solo sobre el suyo.
+- Ningún módulo consulta el esquema de Postgres de otro contexto → automatizada en la base ([ADR-0027](docs/adr/0027-aislar-contextos-con-un-esquema-y-un-rol-de-postgres-por-contexto.md)): cada contexto se conecta con su propio rol, que solo tiene permisos sobre su esquema, y ningún rol de contexto puede hacer DDL. Lo comprueba `apps/api/test/database-isolation.e2e-spec.ts` para cada par de contextos, en `npm test`.
+- La infraestructura no depende de los contextos → automatizada: `infrastructure-does-not-import-contexts`.
 - Interacciones no lee el celular ni el correo del comensal → parcial: solo llega a Comensales por su `index.ts`; que "Nombre público" devuelva solo el nombre es un test de contrato (skill `tdd`).
 - Los controladores no tienen reglas de negocio → parcial: `controllers-no-persistence` (un controlador no importa entidades ni repositorios). Que no decidan permisos es comportamiento: lo cubre la prueba de aislamiento.
 - El worker de medios no publica, solo llama al contrato de Catálogo → intención: el worker todavía no existe ni tiene carpeta.
 - `apps/pwa` y `apps/admin` no se importan entre sí → automatizada: `pwa-does-not-import-admin` y `admin-does-not-import-pwa`. Que las apps no tengan lógica → intención: es criterio de revisión, no una dependencia.
-- `packages/*` sin DOM → automatizada en dos partes: `packages-without-dom-renderer` (sin `react-dom`) y el typecheck de cada paquete con `lib: ["ES2022"]`, sin DOM. Débil: un paquete nuevo que agregue `DOM` a su `tsconfig` pasaría; los adaptadores de navegador, cuando existan, irán en su propio paquete con una excepción explícita.
+- `packages/*` sin DOM ni Node → automatizada: `packages-without-dom-renderer` (sin `react-dom`), `packages-without-node-apis` (sin módulos core de Node, salvo tests y `scripts/` de build) y el typecheck de cada paquete con `lib: ["ES2022"]`, sin DOM. Débil: un paquete nuevo que agregue `DOM` a su `tsconfig` pasaría; los adaptadores de navegador, cuando existan, irán en su propio paquete con una excepción explícita.
+- `packages/*` no importa nada de `apps/*` → automatizada: `packages-do-not-import-apps`.
 
 ### Tests de recuperación (pendientes; con la skill `tdd`)
 
@@ -229,6 +242,12 @@ Todas en estado `Aceptado`. DEC-NN del diseño = ADR-00NN; la 0025 se tomó al t
 - [0023](docs/adr/0023-invitar-admins-con-enlace-de-un-solo-uso.md) Invitación de admin con enlace de un solo uso
 - [0024](docs/adr/0024-separar-la-logica-del-frontend-en-paquetes-sin-dom.md) Lógica del frontend en paquetes sin DOM
 - [0025](docs/adr/0025-usar-typeorm-con-migraciones-revisadas-a-mano.md) TypeORM, con particiones y esquemas en migraciones a mano
+- [0026](docs/adr/0026-validar-con-zod-y-compartir-contratos-en-packages-contracts.md) Zod y contratos compartidos en `packages/contracts`
+- [0027](docs/adr/0027-aislar-contextos-con-un-esquema-y-un-rol-de-postgres-por-contexto.md) Una base; un esquema y un rol de Postgres por contexto
+- [0028](docs/adr/0028-usar-cookie-de-sesion-opaca-para-el-admin.md) Sesión del admin con cookie opaca y hash en Postgres
+- [0029](docs/adr/0029-identificar-la-sucursal-con-subdominio-y-slug-en-la-ruta.md) Sucursal por subdominio + slug en la ruta
+- [0030](docs/adr/0030-usar-seaweedfs-y-mailpit-en-local-detras-de-adaptadores-s3-y-smtp.md) SeaweedFS y Mailpit en local, adaptadores S3 y SMTP
+- [0031](docs/adr/0031-usar-css-modules-con-las-variables-de-tokens.md) CSS Modules con las variables de tokens
 
 ## Notas / gotchas
 
@@ -237,7 +256,10 @@ Todas en estado `Aceptado`. DEC-NN del diseño = ADR-00NN; la 0025 se tomó al t
 - `apps/api/.oxlintrc.json` apaga `typescript/no-explicit-any`, en contra de la regla de evitar `any`.
 - `apps/api/AGENTS.md` (del CLI de Nest) sugiere NestJS Observe y `nest deploy` (Mau): son servicios de pago y despliegan hacia fuera. No se usan (baseline §6.1); `@nestjs/mau` y el script `deploy` se quitaron el 2026-11-09, y con ellos las 2 vulnerabilidades altas de `npm audit`.
 - `npm audit` (2026-11-09): 0 en producción y 0 altas. Quedan 20 moderadas y bajas, todas dentro de Jest 30.5.2 y con 3 causas: `glob` (GHSA-3g3m-2fjr-6pw4) y `minimatch` (GHSA-g3hv-75wg-m249), corregidas solo en mayores que Jest no admite (`glob` 14 cambia cómo se interpretan los patrones y los `ignore`), y `deepmerge` (GHSA-gcqx-w48m-w2h4), sin corrección publicada. No se fuerzan con `overrides`: podría cambiar en silencio qué tests encuentra Jest, y aquí no son explotables (Jest solo procesa archivos y patrones del repo). Revisar cuando Jest publique una versión que las actualice.
-- Las reglas del kit dan por hecho piezas no instaladas ni decididas: Tailwind, shadcn/ui, TanStack Query y Zustand en el frontend; `class-validator` y Joi en el API.
+- Las reglas del kit dan por hecho piezas que aquí no se usan: Tailwind y shadcn/ui (se decidió CSS Modules, ADR-0031), `class-validator` y Joi (se decidió Zod, ADR-0026), y TanStack Query y Zustand (sin decidir).
+- Los hooks del kit no dejan leer el `.env` ni escribir valores que parezcan secretos (`password = '…'`). En los tests, los valores ficticios llevan prefijo `example_`; los scripts leen secretos del entorno (por ejemplo, `\getenv` en `config/postgres/init-roles.sh`).
+- Si Postgres no responde al **arrancar**, el API no arranca (TypeORM reintenta 3 veces). Servir el menú desde la caché con Postgres caído (ADR-0016) solo cubre una caída en marcha; ver _Pendiente_.
+- Mailpit corre sin búsqueda DNS inversa (`MP_SMTP_DISABLE_RDNS`): una búsqueda fría es la sospecha de un chequeo SMTP que tardó más de 1 s al estrenar los contenedores (no se pudo reproducir). SeaweedFS corre con la telemetría apagada.
 - Solo hay hook `commit-msg` (commitlint); no hay `pre-commit` con lint-staged.
 - Versión de Node: dependency-cruiser rechaza Node 25 (`lint:arch` falla con "Your node version … is not supported"), y Jest y el CLI de Nest fallan en Node 22 (`ERR_REQUIRE_CYCLE_MODULE`, `createRequireEsmError`). Usa Node 26 (`nvm use`).
 - Un solo Redis con `noeviction`: al llenarse rechaza escrituras en vez de expulsar claves, así que toda clave de caché, límite o código lleva vencimiento.
@@ -248,7 +270,9 @@ Todas en estado `Aceptado`. DEC-NN del diseño = ADR-00NN; la 0025 se tomó al t
 - Supuestos del diseño que condicionan código: tope de la cola de 15 min, caché de 24 h, espera de caché de ~100 ms, eventos hasta 7 días tarde, login cerrado si cae Redis, ~100 KB por menú, negocios que no se registran solos.
 - El diseño dice "código cifrado" y "token cifrado": confirmar si es un hash (no reversible), lo usual para códigos y tokens de un solo uso.
 - Cómo corren los workers: se infiere que comparten el código de `apps/api` con otro punto de entrada; falta decidirlo.
-- Sesión del admin (cookie o token), librería de colas (BullMQ es el default del kit) y de validación.
+- Librería de colas (BullMQ es el default del kit; el cliente `REDIS_QUEUE` ya está listo para ella).
+- Arranque del API sin Postgres: decidir en la fase de Catálogo si el API debe poder arrancar y servir el menú desde la caché cuando Postgres no responde al iniciar.
+- Quién crea las particiones diarias de Medición (es DDL, que el rol de `measurement` no tiene; ADR-0027).
 - Retención de los datos de comensales frente a la ley mexicana de datos personales (RNF-07).
 - Runner de tests del frontend.
 - Nombres del glosario y de las rutas en inglés (propuestos al trasladar el diseño).
