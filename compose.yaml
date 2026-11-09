@@ -1,0 +1,101 @@
+# Local infrastructure for development and CI (ADR-0030). Every image is pinned by version
+# and digest, and every port listens on 127.0.0.1 only. Values come from the root .env,
+# which `npm run env:init` creates with random development secrets.
+name: miramenu
+
+services:
+  postgres:
+    image: postgres:18.6-trixie@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?run npm run env:init}
+      DB_NAME: ${DB_NAME:?}
+      DB_MIGRATOR_USER: ${DB_MIGRATOR_USER:?}
+      DB_MIGRATOR_PASSWORD: ${DB_MIGRATOR_PASSWORD:?}
+      DB_BUSINESS_ACCESS_USER: ${DB_BUSINESS_ACCESS_USER:?}
+      DB_BUSINESS_ACCESS_PASSWORD: ${DB_BUSINESS_ACCESS_PASSWORD:?}
+      DB_CATALOG_USER: ${DB_CATALOG_USER:?}
+      DB_CATALOG_PASSWORD: ${DB_CATALOG_PASSWORD:?}
+      DB_DINERS_USER: ${DB_DINERS_USER:?}
+      DB_DINERS_PASSWORD: ${DB_DINERS_PASSWORD:?}
+      DB_INTERACTIONS_USER: ${DB_INTERACTIONS_USER:?}
+      DB_INTERACTIONS_PASSWORD: ${DB_INTERACTIONS_PASSWORD:?}
+      DB_MEASUREMENT_USER: ${DB_MEASUREMENT_USER:?}
+      DB_MEASUREMENT_PASSWORD: ${DB_MEASUREMENT_PASSWORD:?}
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - ./config/postgres/init-roles.sh:/docker-entrypoint-initdb.d/10-init-roles.sh:ro
+    ports:
+      - 127.0.0.1:${DB_PORT:?}:5432
+    healthcheck:
+      # TCP on purpose: during initialization the server only listens on its socket.
+      test: [CMD-SHELL, 'pg_isready -h 127.0.0.1 -U postgres -d "$${DB_NAME}"']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:8.8.4-trixie@sha256:6e61ab45b3e867bacbef2fdd969ec74f4e0f8aaca8cc946cb8ac0c494035e7e7
+    # ADR-0012: AOF every second and noeviction, so the measurement queue survives restarts.
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
+      - --maxmemory
+      - ${REDIS_MAXMEMORY:-256mb}
+      - --maxmemory-policy
+      - noeviction
+      - --requirepass
+      - ${REDIS_PASSWORD:?run npm run env:init}
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?}
+    volumes:
+      - redis-data:/data
+    ports:
+      - 127.0.0.1:${REDIS_PORT:?}:6379
+    healthcheck:
+      test: [CMD-SHELL, "redis-cli ping | grep -q PONG"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.52@sha256:57877e32bb90073b37dc109b438ba66e84fd5ed9ced5f5c04f56444ef243ce59
+    entrypoint: [/bin/sh, /etc/miramenu/start-seaweedfs.sh]
+    environment:
+      S3_BUCKET: ${S3_BUCKET:?run npm run env:init}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?}
+    volumes:
+      - seaweedfs-data:/data
+      - ./config/seaweedfs/start.sh:/etc/miramenu/start-seaweedfs.sh:ro
+    ports:
+      - 127.0.0.1:${S3_PORT:?}:8333
+    healthcheck:
+      test: [CMD-SHELL, "nc -z 127.0.0.1 8333"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+
+  mailpit:
+    image: axllent/mailpit:v1.33.0@sha256:9b3a463be15354c0f0eba91697d80e3e0d8a5623ef0e627cacc836bc17fd5231
+    environment:
+      MP_DISABLE_VERSION_CHECK: "true"
+      MP_MAX_MESSAGES: "500"
+      # No reverse DNS of SMTP clients: a cold lookup can take seconds (suspected cause of
+      # an SMTP check timing out right after the stack started); Mailpit does not need it.
+      MP_SMTP_DISABLE_RDNS: "true"
+    ports:
+      - 127.0.0.1:${SMTP_PORT:?run npm run env:init}:1025
+      - 127.0.0.1:${MAILPIT_UI_PORT:?}:8025
+    healthcheck:
+      test: [CMD, /mailpit, readyz]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  postgres-data:
+  redis-data:
+  seaweedfs-data:
