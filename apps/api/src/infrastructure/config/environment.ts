@@ -31,6 +31,9 @@ const originList = z
   )
   .pipe(z.array(z.string().refine(isBareOrigin)));
 
+/** An http(s) origin with no path, such as https://mirame.nu or http://miramenu.localhost:5173. */
+const bareOrigin = httpUrl.refine(isBareOrigin);
+
 const databaseShape = {
   DB_HOST: nonEmpty,
   DB_PORT: port,
@@ -55,6 +58,17 @@ const environmentSchema = z
     PORT: port,
     CORS_ALLOWED_ORIGINS: originList,
     HEALTH_CHECK_TIMEOUT_MS: positiveInt.max(30_000).default(1000),
+    // How many proxies sit in front of the API, so request.ip is the client's (login limits).
+    TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(10).default(0),
+    // Base of branch URLs and QR short links, e.g. https://mirame.nu (ADR-0010, ADR-0029).
+    PUBLIC_SITE_URL: bareOrigin,
+    // The admin app: the only Origin accepted on admin writes and the base of invitation links.
+    ADMIN_APP_URL: bareOrigin,
+    ADMIN_SESSION_IDLE_MINUTES: positiveInt.max(24 * 60).default(60),
+    ADMIN_SESSION_ABSOLUTE_HOURS: positiveInt.max(24 * 30).default(12),
+    // ADR-0016: refresh the cached QR and site resolution after 60 s, keep it 24 h.
+    RESOLUTION_CACHE_REFRESH_SECONDS: positiveInt.max(3600).default(60),
+    RESOLUTION_CACHE_TTL_HOURS: positiveInt.max(24 * 7).default(24),
     ...databaseShape,
     REDIS_HOST: nonEmpty,
     REDIS_PORT: port,
@@ -112,6 +126,11 @@ export interface AppConfig {
   port: number;
   corsAllowedOrigins: string[];
   healthCheckTimeoutMs: number;
+  trustProxyHops: number;
+  publicSiteUrl: string;
+  adminAppUrl: string;
+  adminSession: { idleMinutes: number; absoluteHours: number };
+  resolutionCache: { refreshSeconds: number; ttlHours: number };
   database: DatabaseConfig;
   redis: {
     host: string;
@@ -218,6 +237,17 @@ export function parseEnvironment(env: Environment): AppConfig {
     port: parsed.PORT,
     corsAllowedOrigins: parsed.CORS_ALLOWED_ORIGINS,
     healthCheckTimeoutMs: parsed.HEALTH_CHECK_TIMEOUT_MS,
+    trustProxyHops: parsed.TRUST_PROXY_HOPS,
+    publicSiteUrl: parsed.PUBLIC_SITE_URL,
+    adminAppUrl: parsed.ADMIN_APP_URL,
+    adminSession: {
+      idleMinutes: parsed.ADMIN_SESSION_IDLE_MINUTES,
+      absoluteHours: parsed.ADMIN_SESSION_ABSOLUTE_HOURS,
+    },
+    resolutionCache: {
+      refreshSeconds: parsed.RESOLUTION_CACHE_REFRESH_SECONDS,
+      ttlHours: parsed.RESOLUTION_CACHE_TTL_HOURS,
+    },
     database: toDatabaseConfig(parsed),
     redis: {
       host: parsed.REDIS_HOST,

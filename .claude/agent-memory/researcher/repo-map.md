@@ -1,12 +1,19 @@
 # Mapa del repo y trampas
 
-Verificado el 2026-11-09 (última revisión: base del backend, rama `feat/backend-foundation`).
+Verificado el 2026-11-10 (última revisión: fase 1, Negocios y acceso, rama `feat/business-access`).
 
 - El diseño vive fuera del repo: `../miramenu/design.md` (system-design-kit, con su propio `.claude/`). La demo de la que sale está en `../menu_experience/design.md`. Antes de reimportar, compara el `updated` del front matter con la línea "Diseño de origen" de `CLAUDE.project.md`.
-- Los cinco módulos de `apps/api/src/modules/` siguen vacíos (solo su `*.module.ts` y su `index.ts`), registrados en `apps/api/src/app.module.ts`. Se renombraron del español al glosario de `CLAUDE.project.md` el 2026-11-09 (negocios → business-access, catalogo → catalog, comensales → diners, interacciones → interactions, medicion → measurement). La plantilla (`AppController` "Hello World!") se borró en la fase 0 del backend.
+- `business-access` está implementado (fase 1); los otros cuatro módulos de `apps/api/src/modules/` siguen vacíos (solo su `*.module.ts` y su `index.ts`), registrados en `apps/api/src/app.module.ts`.
+- Mapa de Negocios y acceso (`apps/api/src/modules/business-access/`):
+  - `domain/access-policy.ts`: la matriz de permisos pura (404 fuera del alcance, 403 dentro). `application/access-control.ts` la aplica y carga el negocio real de una sucursal.
+  - `application/identifiers.ts`: reglas de subdominio y slug (actual + alias, `FOR UPDATE`, `ON CONFLICT DO NOTHING`), el QR y `findOrCreateAdminUser` (columnas explícitas por el permiso de `is_superadmin`).
+  - Flujo de login: `http/session.controller.ts` → `application/login.service.ts` (límite en `login-throttle.ts`, Redis) → `admin-session.service.ts` (token, hash, `authenticate` con inactividad).
+  - `migrations/1794312000000-CreateBusinessAccessTables.ts`: tablas, índices y los permisos por columna que garantizan RNF-08 y que los QR, subdominios y slugs no se reasignan.
+- `apps/api/src/cli/`: `migrations.ts` (la lista única de migraciones), `migrator.data-source.ts` (rol dueño) y `seed-superadmin.ts`. El migrador ya no vive en `infrastructure/database/`.
+- Los e2e usan la base `miramenu_test` (global setup la migra). `test/support/admin-fixtures.ts` tiene los atajos (superadmin, `activateAdmin`, `AdminClient`, token desde Mailpit). Se renombraron del español al glosario de `CLAUDE.project.md` el 2026-11-09 (negocios → business-access, catalogo → catalog, comensales → diners, interacciones → interactions, medicion → measurement). La plantilla (`AppController` "Hello World!") se borró en la fase 0 del backend.
 - Mapa de la base del backend (fase 0, 2026-11-09), todo en `apps/api/src/infrastructure/`:
   - `config/environment.ts`: el esquema Zod del entorno; `parseEnvironment` (todo) y `parseDatabaseEnvironment` (solo DB, para el migrador y los tests). `config.module.ts` expone `APP_CONFIG`.
-  - `database/`: `database-contexts.ts` (la lista de contextos = nombres de esquema), `context-connection-options.ts` (una conexión por contexto, con su rol y `search_path`), `migrator.data-source.ts` (lo usa el CLI de TypeORM desde `dist/`) y la migración `1794260948502-CreateContextSchemas.ts`.
+  - `database/`: `database-contexts.ts` (la lista de contextos = nombres de esquema), `context-connection-options.ts` (una conexión por contexto, con su rol y `search_path`) y la migración `1794260948502-CreateContextSchemas.ts`.
   - `http/configure-app.ts`: lo comparten `main.ts` y `test/support/test-app.ts`. `all-exceptions.filter.ts` convierte todo al sobre de `@miramenu/contracts`.
   - `health/health.controller.ts`: `/health/live` (balanceador) y `/health/dependencies` (monitoreo; nombra las dependencias caídas).
 - Infra local: `compose.yaml` + `config/postgres/init-roles.sh` (roles y base, solo dev/CI) + `config/seaweedfs/start.sh` (identidades S3) + `scripts/init-dev-env.mjs` (genera `.env`). Puertos: Postgres 55432, Redis 56379, S3 58333, SMTP 51025, Mailpit UI 58025.

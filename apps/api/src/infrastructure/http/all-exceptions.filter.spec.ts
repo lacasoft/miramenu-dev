@@ -6,7 +6,25 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { errorCodeFor, errorMessageFor } from './all-exceptions.filter';
+import { ApiException } from './api-exception';
 import { RequestValidationException } from './request-validation';
+
+describe('errorCodeFor with context codes', () => {
+  it('uses the code an ApiException carries', () => {
+    expect(
+      errorCodeFor(
+        new ApiException(409, 'SUBDOMAIN_TAKEN', 'Subdomain taken'),
+        409,
+      ),
+    ).toBe('SUBDOMAIN_TAKEN');
+    expect(
+      errorMessageFor(
+        new ApiException(409, 'SUBDOMAIN_TAKEN', 'Subdomain taken'),
+        409,
+      ),
+    ).toBe('Subdomain taken');
+  });
+});
 
 describe('errorCodeFor', () => {
   it('marks schema failures as VALIDATION_FAILED, not as a plain bad request', () => {

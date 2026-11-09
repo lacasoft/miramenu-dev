@@ -1,4 +1,4 @@
-import type { INestApplication, Type } from '@nestjs/common';
+import type { DynamicModule, INestApplication, Type } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { App } from 'supertest/types';
 import { AppModule } from '../../src/app.module';
@@ -14,16 +14,25 @@ interface TestAppOptions {
   configure?: (config: AppConfig) => AppConfig;
   /** Extra controllers that only exist in the test, to exercise the HTTP setup. */
   controllers?: Type[];
+  /** Extra modules the test needs, such as DiscoveryModule. */
+  imports?: (Type | DynamicModule)[];
 }
 
-/** The real application, wired to the real local services, set up exactly as main.ts does. */
+/**
+ * The real application, wired to the real local services, set up exactly as main.ts does.
+ * It trusts one proxy, so each test file can act from its own client IP (X-Forwarded-For)
+ * and the login limits of one test never block the logins of another.
+ */
 export async function createTestApp(
   options: TestAppOptions = {},
 ): Promise<INestApplication<App>> {
-  const base = parseEnvironment(process.env);
+  const base: AppConfig = {
+    ...parseEnvironment(process.env),
+    trustProxyHops: 1,
+  };
   const config = options.configure ? options.configure(base) : base;
   const moduleRef = await Test.createTestingModule({
-    imports: [AppModule],
+    imports: [AppModule, ...(options.imports ?? [])],
     controllers: options.controllers ?? [],
   })
     .overrideProvider(APP_CONFIG)
