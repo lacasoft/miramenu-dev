@@ -164,7 +164,7 @@ Corridos el 2026-11-09 desde la raíz con Node 26.13 (✓ pasa · ✗ falla tal 
 ## Despliegue / infraestructura
 
 - Hoy solo hay desarrollo local, con todo en Docker (aún no hay `docker-compose`). Nube, servicios y región se definen al ir a producción; región inicial México.
-- Sin CI: no hay `.github/workflows`, solo la plantilla de PR.
+- CI en GitHub Actions (`.github/workflows/ci.yml`), en cada PR a `master` y cada push a `master`, con Node de `.nvmrc` e instalación `npm ci --ignore-scripts`. Cuatro jobs en paralelo: `npm run lint` + `check` de tokens · `npm test` · `npm run build --workspaces --if-present` · `npm audit --audit-level=high`. Actions fijadas por SHA. Sin despliegue todavía.
 - Redis con AOF `appendfsync everysec` y `maxmemory-policy noeviction` ([ADR-0012](docs/adr/0012-mantener-la-cola-de-medicion-en-redis-con-aof-y-noeviction.md)).
 
 ## Variables de entorno críticas
@@ -181,7 +181,7 @@ Corridos el 2026-11-09 desde la raíz con Node 26.13 (✓ pasa · ✗ falla tal 
 
 ### Restricciones de arquitectura
 
-Las comprueba `.dependency-cruiser.cjs` en `npm run lint` (script `lint:arch`). El 2026-11-09 cada regla falló a propósito con una violación de prueba.
+Las comprueba `.dependency-cruiser.cjs` en `npm run lint` (script `lint:arch`), que el CI corre en cada PR. El 2026-11-09 cada regla falló a propósito con una violación de prueba.
 
 - Cada contexto usa solo los de su columna _Usa de otros_: business-access y diners, ninguno; catalog → business-access; interactions → catalog, diners, business-access; measurement → catalog, business-access, interactions → automatizada: reglas `<contexto>-uses-only-declared-contexts`. Con eso no puede haber ciclos entre contextos, y cubre "Comensales no escribe en Interacciones".
 - Otro contexto solo se usa por su `index.ts`, nunca por sus entidades, repositorios ni internos → automatizada: `context-public-entry-only` y `context-entry-hides-persistence` (el `index.ts` no reexporta `*.entity.ts` ni `*.repository.ts`). Cuenta también los imports solo de tipos.
