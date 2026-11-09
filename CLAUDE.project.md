@@ -36,7 +36,7 @@ Claves: Like único `(sucursal, platillo, comensal o dispositivo)` · AjusteSucu
 
 ## Stack tecnológico
 
-- Monorepo con npm workspaces (`apps/*`, `packages/*`) y un solo `package-lock.json`; las dependencias quedan en el `node_modules/` de la raíz. Node local v25.8.1 (no hay `engines` ni `.nvmrc`).
+- Monorepo con npm workspaces (`apps/*`, `packages/*`) y un solo `package-lock.json`; las dependencias quedan en el `node_modules/` de la raíz. **Node 26 LTS** (`.nvmrc` y `engines` en la raíz; decidido 2026-11-09): usa `nvm use`.
 - `apps/api`: NestJS 12.4 (`platform-express`), TypeScript 6.0, CommonJS que carga los paquetes ESM de Nest con `require(esm)`. Jest 30 + ts-jest + supertest. Oxlint 1.93 type-aware y Prettier 3.9.
 - `apps/pwa` y `apps/admin`: React 19.3, Vite 8.3, TypeScript 7.0 (instalado en cada app), Oxlint. Sin ESLint ni runner de tests.
 - Raíz: Husky 9 + commitlint 21 (`config-conventional`) en `commit-msg`.
@@ -241,5 +241,5 @@ Todas en estado `Aceptado`. DEC-NN del diseño = ADR-00NN; la 0025 se tomó al t
 - Cómo corren los workers: se infiere que comparten el código de `apps/api` con otro punto de entrada; falta decidirlo.
 - Sesión del admin (cookie o token), librería de colas (BullMQ es el default del kit) y de validación.
 - Retención de los datos de comensales frente a la ley mexicana de datos personales (RNF-07).
-- Versión de Node objetivo y runner de tests del frontend.
+- Runner de tests del frontend.
 - Nombres del glosario y de las rutas en inglés (propuestos al trasladar el diseño).

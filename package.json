@@ -1,6 +1,9 @@
 {
   "name": "miramenu",
   "private": true,
+  "engines": {
+    "node": "^26.0.0"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"
