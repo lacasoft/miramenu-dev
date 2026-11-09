@@ -11,7 +11,7 @@ Fuente: `docs/diseno-visual/sistema-de-diseno-gastronomico-v1.0.md` y `docs/dise
 
 - **Los valores viven en `packages/tokens/src/index.ts`.** Los componentes usan los roles, nunca un hex. El CSS de `packages/tokens/generated/` se regenera (`npm run build -w packages/tokens`), no se edita a mano.
 - **La geometría de los iconos vive en `packages/icons`.** Cada plataforma la dibuja con su renderer.
-- **Base de estilos de las apps: por definir.** No es la de la demo (Tailwind v4, radix-ui y cva); hasta que se decida, no la introduzcas.
+- **Base de estilos de las apps: CSS Modules** (`*.module.css`) que consumen las variables de `@miramenu/tokens/tokens.css` por rol (ADR-0031). No se usa la base de la demo (Tailwind v4, radix-ui y cva) ni la de la regla del kit (Tailwind y shadcn/ui).
 
 ## Color
 

@@ -94,6 +94,36 @@ module.exports = {
       from: { path: "^packages/" },
       to: { path: "(^|/)react-dom(/|$)" },
     },
+    {
+      name: "packages-without-node-apis",
+      severity: "error",
+      comment:
+        "Shared packages run in the browser and in React Native too: no Node core modules " +
+        "outside their tests and build scripts (ADR-0024, ADR-0026).",
+      from: {
+        path: "^packages/",
+        pathNot: ["\\.test\\.ts$", "^packages/[^/]+/scripts/"],
+      },
+      to: { dependencyTypes: ["core"] },
+    },
+    {
+      name: "packages-do-not-import-apps",
+      severity: "error",
+      comment:
+        "Dependencies point from the apps to the shared packages, never the other way " +
+        "(CLAUDE.project.md → Restricciones de arquitectura).",
+      from: { path: "^packages/" },
+      to: { path: "^apps/" },
+    },
+    {
+      name: "infrastructure-does-not-import-contexts",
+      severity: "error",
+      comment:
+        "Infrastructure (config, database, HTTP, Redis, storage, mail) serves the contexts and " +
+        "never depends on them (CLAUDE.project.md → Restricciones de arquitectura).",
+      from: { path: "^apps/api/src/infrastructure/" },
+      to: { path: "^apps/api/src/modules/" },
+    },
   ],
   options: {
     doNotFollow: { path: "(^|/)node_modules/" },

@@ -1,8 +1,23 @@
+import { ConsoleLogger, Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { APP_CONFIG } from './infrastructure/config/config.module';
+import type { AppConfig } from './infrastructure/config/environment';
+import { configureApp } from './infrastructure/http/configure-app';
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  await app.listen(process.env.PORT ?? 3000);
+async function bootstrap(): Promise<void> {
+  const app = await NestFactory.create(AppModule, {
+    logger: new ConsoleLogger({ json: true }),
+  });
+  const config = app.get<AppConfig>(APP_CONFIG);
+  configureApp(app, config);
+  await app.listen(config.port);
 }
-void bootstrap();
+
+bootstrap().catch((error: unknown) => {
+  // Configuration errors name variables, never values, so the message is safe to log.
+  new Logger('Bootstrap').fatal(
+    error instanceof Error ? error.message : 'Boot failed',
+  );
+  process.exit(1);
+});
