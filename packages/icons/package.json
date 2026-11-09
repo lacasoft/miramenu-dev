@@ -1,0 +1,13 @@
+{
+  "name": "@miramenu/icons",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Geometría canónica de los iconos (viewBox 24 × 24), sin DOM: cada plataforma la dibuja con su renderer.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  }
+}

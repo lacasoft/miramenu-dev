@@ -1,0 +1,17 @@
+{
+  "name": "miramenu",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
+    "husky": "9.1.7",
+    "typescript": "6.0.3"
+  },
+  "scripts": {
+    "prepare": "husky"
+  }
+}

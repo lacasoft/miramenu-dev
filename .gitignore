@@ -1,0 +1,31 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+*.log
+.DS_Store
+
+# Configuración personal (p. ej. .claude/settings.local.json) y worktrees de Claude Code
+*.local.*
+.claude/worktrees/
+
+# Documentación de trabajo: solo se versionan los ADRs y el sistema visual
+/docs/*
+!/docs/adr/
+!/docs/diseno-visual/
+# Referencia de terceros: se queda solo en local
+/docs/diseno-visual/dashboard.png
+
+# dev-starter-kit
+.claude/memory/
+.claude/agent-memory-local/
+.claude/loop/
+.loop/
+CLAUDE.local.md
+.claude.backup.*
+.env
+.env.*
+.pi.backup.*
+!.env.example
+!.env.sample
+!.env.template

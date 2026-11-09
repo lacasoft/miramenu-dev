@@ -1,0 +1,16 @@
+{
+  "name": "@miramenu/tokens",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Fuente única de los tokens del Sistema de diseño gastronómico v1.0 y su adaptador CSS para la web.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tokens.css": "./generated/tokens.css"
+  },
+  "scripts": {
+    "build": "node scripts/build-css.mjs",
+    "check": "node scripts/build-css.mjs --check",
+    "typecheck": "tsc --noEmit -p ."
+  }
+}

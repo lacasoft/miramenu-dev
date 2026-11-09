@@ -1,0 +1,124 @@
+/* Generado por packages/tokens/scripts/build-css.mjs desde src/index.ts. No lo edites a mano. */
+
+:root {
+  --color-background: #0B0D0C;
+  --color-foreground: #F8F5EF;
+  --color-surface: #151816;
+  --color-muted-foreground: #D9D3C7;
+  --color-danger: #FFB4A8;
+  --color-primary: #544622;
+  --color-primary-foreground: #F8F5EF;
+  --color-accent: #D7C49A;
+  --color-accent-foreground: #0B0D0C;
+  --color-ring: #D7C49A;
+  --color-spot-light: #8DD6CD;
+  --dashboard-background: #EEEDE7;
+  --dashboard-card: #FFFFFF;
+  --dashboard-ink: #193127;
+  --dashboard-muted: #4F5B55;
+  --dashboard-grid: #E4E6E2;
+  --dashboard-accent-from: #577564;
+  --dashboard-accent-to: #3F5A4B;
+  --dashboard-accent-foreground: #FFFFFF;
+  --dashboard-gauge-track: #E8EFEC;
+  --dashboard-positive: #E8EDEB;
+  --dashboard-positive-text: #29332E;
+  --dashboard-negative: #F8EBEB;
+  --dashboard-negative-text: #4C1006;
+  --dashboard-ring: #193127;
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --text-display: 2.25rem;
+  --text-display-line-height: 2.625rem;
+  --text-screen-title: 1.75rem;
+  --text-screen-title-line-height: 2.125rem;
+  --text-section: 1.375rem;
+  --text-section-line-height: 1.75rem;
+  --text-card: 1.125rem;
+  --text-card-line-height: 1.5rem;
+  --text-body: 1rem;
+  --text-body-line-height: 1.5rem;
+  --text-label: 0.875rem;
+  --text-label-line-height: 1.25rem;
+  --text-meta: 0.75rem;
+  --text-meta-line-height: 1rem;
+  --space-4: 0.25rem;
+  --space-8: 0.5rem;
+  --space-12: 0.75rem;
+  --space-16: 1rem;
+  --space-20: 1.25rem;
+  --space-24: 1.5rem;
+  --space-32: 2rem;
+  --space-40: 2.5rem;
+  --space-48: 3rem;
+  --space-64: 4rem;
+  --mobile-margin: 1rem;
+  --touch-target: 48px;
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --radius-field: 0.75rem;
+  --radius-module: 1.5rem;
+  --radius-panel: 2rem;
+  --radius-pill: 9999px;
+  --duration-brief: 120ms;
+  --duration-standard: 200ms;
+  --duration-editorial: 320ms;
+  --ease-standard: ease-out;
+  --glass-smoke-background: rgba(22, 23, 20, 0.64);
+  --glass-smoke-border: rgba(248, 245, 239, 0.28);
+  --glass-smoke-blur: 14px;
+  --glass-pearl-background: rgba(70, 58, 44, 0.74);
+  --glass-pearl-border: rgba(215, 196, 154, 0.4);
+  --glass-pearl-blur: 14px;
+}
+
+/* Materiales: siempre con alternativa sólida. */
+.glass-smoke {
+  border: 1px solid var(--glass-smoke-border);
+  background-color: var(--glass-smoke-background);
+  -webkit-backdrop-filter: blur(var(--glass-smoke-blur));
+  backdrop-filter: blur(var(--glass-smoke-blur));
+}
+
+.glass-pearl {
+  border: 1px solid var(--glass-pearl-border);
+  background-color: var(--glass-pearl-background);
+  -webkit-backdrop-filter: blur(var(--glass-pearl-blur));
+  backdrop-filter: blur(var(--glass-pearl-blur));
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass-smoke,
+  .glass-pearl {
+    background-color: var(--color-surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-smoke,
+  .glass-pearl {
+    background-color: var(--color-surface);
+  }
+}
+
+.scrim-bottom {
+  background-image: linear-gradient(to top, rgba(11, 13, 12, 0.92) 0%, rgba(11, 13, 12, 0.78) 40%, rgba(11, 13, 12, 0.25) 70%, rgba(11, 13, 12, 0) 100%);
+}
+
+.scrim-top {
+  background-image: linear-gradient(to bottom, rgba(11, 13, 12, 0.7) 0%, rgba(11, 13, 12, 0) 100%);
+}
+
+/* Dashboard: superficies sólidas y su propio foco. */
+.dashboard {
+  --color-ring: var(--dashboard-ring);
+  background-color: var(--dashboard-background);
+  color: var(--dashboard-ink);
+  color-scheme: light;
+}
+
+.dashboard-accent {
+  background-image: linear-gradient(135deg, var(--dashboard-accent-from), var(--dashboard-accent-to));
+  color: var(--dashboard-accent-foreground);
+}
