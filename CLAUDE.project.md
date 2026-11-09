@@ -44,7 +44,7 @@ Claves: Like único `(sucursal, platillo, comensal o dispositivo)` · AjusteSucu
 
 ## Estructura del repositorio
 
-- `apps/api` — monolito modular, un módulo por contexto en `src/modules/<contexto>/`. Hoy están vacíos y con nombre en español: renómbralos según el glosario antes de agregar código. Los workers de medios y de medición son parte del mismo monolito.
+- `apps/api` — monolito modular, un módulo por contexto en `src/modules/<contexto>/`, con los nombres del glosario (`business-access`, `catalog`, `diners`, `interactions`, `measurement`); hoy están vacíos. Los workers de medios y de medición son parte del mismo monolito.
 - `apps/pwa` — PWA del comensal. `apps/admin` — CMS, publicación, moderación y dashboard. Las dos siguen siendo la plantilla de Vite.
 - `packages/tokens` (`@miramenu/tokens`, tokens del sistema visual y su CSS generado) y `packages/icons` (`@miramenu/icons`, geometría de iconos); reglas en `.claude/rules/design-system.md`. Aquí van también los paquetes sin DOM (estado, cliente de la API, reglas de la PWA, tipos) y las interfaces por plataforma de IndexedDB, `sendBeacon` y `visibilitychange` ([ADR-0024](docs/adr/0024-separar-la-logica-del-frontend-en-paquetes-sin-dom.md)).
 - `docs/adr/` — ADRs. `docs/diseno-visual/` — especificación y pantallas aprobadas (`dashboard.png` solo en local: es de terceros). Del resto de `docs/`, nada se versiona. `.pi/` — configuración del kit para Pi Agent.
@@ -158,7 +158,7 @@ Corridos el 2026-11-09 desde la raíz (✓ pasa · ✗ falla tal como está):
   - `node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ./test/jest-e2e.json` ✓ (e2e)
 - `npm run build -w pwa` ✓ · `npm run build -w admin` ✓ · `npm run lint -w pwa` ✓ · `npm run lint -w admin` ✓ · `npm run dev -w pwa` (no corrido)
 - `npm run check -w packages/tokens` ✓ (CSS generado al día) · `npm run typecheck -w packages/tokens` ✓ · `npm run typecheck -w packages/icons` ✓
-- Formato, desde `apps/api`: `npx prettier --check "src/**/*.ts" "test/**/*.ts"` ✗ hoy por `src/app.module.ts`.
+- Formato, desde `apps/api`: `npx prettier --check "src/**/*.ts" "test/**/*.ts"` ✓
 
 ## Despliegue / infraestructura
 

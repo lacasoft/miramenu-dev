@@ -1,14 +1,20 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { NegociosModule } from './modules/negocios/negocios.module';
-import { CatalogoModule } from './modules/catalogo/catalogo.module';
-import { ComensalesModule } from './modules/comensales/comensales.module';
-import { InteraccionesModule } from './modules/interacciones/interacciones.module';
-import { MedicionModule } from './modules/medicion/medicion.module';
+import { BusinessAccessModule } from './modules/business-access/business-access.module';
+import { CatalogModule } from './modules/catalog/catalog.module';
+import { DinersModule } from './modules/diners/diners.module';
+import { InteractionsModule } from './modules/interactions/interactions.module';
+import { MeasurementModule } from './modules/measurement/measurement.module';
 
 @Module({
-  imports: [NegociosModule, CatalogoModule, ComensalesModule, InteraccionesModule, MedicionModule],
+  imports: [
+    BusinessAccessModule,
+    CatalogModule,
+    DinersModule,
+    InteractionsModule,
+    MeasurementModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
