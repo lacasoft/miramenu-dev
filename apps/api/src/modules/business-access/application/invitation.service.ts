@@ -9,7 +9,7 @@ import { Mailer } from '../../../infrastructure/mail/mailer';
 import { hashPassword } from '../domain/password';
 import { generateSecretToken, hashSecretToken } from '../domain/secret-token';
 import { invitationEmail } from './invitation-email';
-import { changeRows, selectRows } from './sql';
+import { changeRows, selectRows } from '../../../infrastructure/database/query';
 
 /** The design fixes it: an invitation link works for 48 hours (ADR-0023). */
 const INVITATION_TTL_MS = 48 * 60 * 60 * 1000;

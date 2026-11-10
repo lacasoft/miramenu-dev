@@ -6,7 +6,7 @@ import { APP_CONFIG } from '../../../infrastructure/config/config.module';
 import type { AppConfig } from '../../../infrastructure/config/environment';
 import type { Actor } from '../domain/actor';
 import { generateSecretToken, hashSecretToken } from '../domain/secret-token';
-import { changeRows, selectRows } from './sql';
+import { changeRows, selectRows } from '../../../infrastructure/database/query';
 
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;

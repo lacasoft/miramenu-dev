@@ -7,13 +7,10 @@ import { APP_CONFIG } from '../../../infrastructure/config/config.module';
 import type { AppConfig } from '../../../infrastructure/config/environment';
 import { ApiException } from '../../../infrastructure/http/api-exception';
 import { REDIS_CACHE } from '../../../infrastructure/redis/redis.module';
-import {
-  type CachedEntry,
-  type FailSoftCache,
-  readThrough,
-} from '../domain/read-through-cache';
+import { readThrough } from '../../../infrastructure/cache/read-through-cache';
+import { RedisFailSoftCache } from '../../../infrastructure/cache/redis-fail-soft-cache';
 import { branchUrl } from '../domain/site-url';
-import { selectRows } from './sql';
+import { selectRows } from '../../../infrastructure/database/query';
 
 interface LocationRow {
   branch_id: string;
@@ -31,32 +28,6 @@ const LOCATION_SQL = `
     (SELECT bs.slug FROM business_access.branch_slug bs WHERE bs.branch_id = b.id AND bs.is_current) AS slug
   FROM business_access.branch b`;
 
-/** Redis as a cache that never fails a request (ADR-0017): errors read as a miss. */
-class RedisResolutionCache implements FailSoftCache<Resolution> {
-  constructor(private readonly redis: Redis) {}
-
-  async get(key: string): Promise<CachedEntry<Resolution> | null> {
-    try {
-      const raw = await this.redis.get(key);
-      return raw ? (JSON.parse(raw) as CachedEntry<Resolution>) : null;
-    } catch {
-      return null;
-    }
-  }
-
-  async set(
-    key: string,
-    entry: CachedEntry<Resolution>,
-    ttlSeconds: number,
-  ): Promise<void> {
-    try {
-      await this.redis.set(key, JSON.stringify(entry), 'EX', ttlSeconds);
-    } catch {
-      // A failed cache write only means the next read goes to Postgres.
-    }
-  }
-}
-
 /**
  * Contract "Resolver un enlace QR o un subdominio a su sucursal". Cached in Redis: refreshed
  * after 60 s, kept 24 h and served if Postgres fails (ADR-0016). There is no explicit
@@ -65,7 +36,7 @@ class RedisResolutionCache implements FailSoftCache<Resolution> {
  */
 @Injectable()
 export class ResolutionService {
-  private readonly cache: RedisResolutionCache;
+  private readonly cache: RedisFailSoftCache<Resolution>;
 
   constructor(
     @InjectDataSource('business_access')
@@ -73,7 +44,7 @@ export class ResolutionService {
     @Inject(REDIS_CACHE) redis: Redis,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {
-    this.cache = new RedisResolutionCache(redis);
+    this.cache = new RedisFailSoftCache<Resolution>(redis);
   }
 
   resolveQr(code: string): Promise<Resolution | null> {

@@ -6,7 +6,7 @@ import { ApiException } from '../../../infrastructure/http/api-exception';
 import { verifyAgainstDecoy, verifyPassword } from '../domain/password';
 import { AdminSessionService } from './admin-session.service';
 import { LoginThrottle } from './login-throttle';
-import { selectRows } from './sql';
+import { selectRows } from '../../../infrastructure/database/query';
 
 interface Credentials {
   email: string;

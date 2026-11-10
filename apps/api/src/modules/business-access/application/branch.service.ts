@@ -18,7 +18,7 @@ import {
   setCurrentSlug,
   setCurrentSubdomain,
 } from './identifiers';
-import { changeRows, selectRows } from './sql';
+import { changeRows, selectRows } from '../../../infrastructure/database/query';
 
 interface BranchRow {
   id: string;

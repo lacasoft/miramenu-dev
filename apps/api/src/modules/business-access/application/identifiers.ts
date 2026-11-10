@@ -2,7 +2,7 @@ import { BUSINESS_ACCESS_ERROR_CODES } from '@miramenu/contracts';
 import type { EntityManager } from 'typeorm';
 import { ApiException } from '../../../infrastructure/http/api-exception';
 import { generateQrCode } from '../domain/qr-code';
-import { changeRows, selectRows } from './sql';
+import { changeRows, selectRows } from '../../../infrastructure/database/query';
 
 const subdomainTaken = () =>
   new ApiException(
