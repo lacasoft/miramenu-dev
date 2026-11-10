@@ -1,4 +1,4 @@
-import type { INestApplication } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import type { AppConfig } from '../config/environment';
 import { AdminOriginGuard } from './admin-origin.guard';
@@ -15,13 +15,19 @@ interface ExpressSettings {
  * CORS stays off unless an allowlist is configured: behind the proxy the apps and the API
  * share the site, and a wildcard origin is never allowed.
  */
-export function configureApp(app: INestApplication, config: AppConfig): void {
+export function configureApp(
+  app: NestExpressApplication,
+  config: AppConfig,
+): void {
   // Only the configured number of proxies is trusted for the client IP (login limits).
   (app.getHttpAdapter().getInstance() as ExpressSettings).set(
     'trust proxy',
     config.trustProxyHops,
   );
   app.use(requestIdMiddleware);
+  // sendBeacon can only post a CORS-safelisted type to another origin without a
+  // preflight, so measurement batches may come as text/plain holding JSON (ADR-0041).
+  app.useBodyParser('text', { type: 'text/plain', limit: '64kb' });
   app.use(helmet());
   // Admin responses carry private data: no browser or proxy may store them.
   app.use(

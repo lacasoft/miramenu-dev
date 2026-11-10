@@ -132,6 +132,9 @@ const environmentSchema = z
     COMMENT_OVERDUE_HOURS: positiveInt.max(24 * 30).default(24),
     // How often the worker moves the likes of newly registered devices to their accounts.
     LIKE_TRANSFER_INTERVAL_SECONDS: positiveInt.max(3600).default(5),
+    // ADR-0012: past this many waiting batches, new ones are refused and the PWA keeps them.
+    MEASUREMENT_QUEUE_MAX_BATCHES: positiveInt.max(10_000_000).default(50_000),
+    MEASUREMENT_WORKER_CONCURRENCY: positiveInt.max(32).default(2),
   })
   .superRefine((env, context) => {
     // Originals keep their EXIF (e.g. GPS) and must never be in the public bucket (ADR-0038).
@@ -241,6 +244,7 @@ export interface AppConfig {
     sendsPerIpPerHour: number;
   };
   dinerSession: { days: number };
+  measurement: { queueMaxBatches: number; workerConcurrency: number };
   interactions: {
     commentsPerDinerPerHour: number;
     commentOverdueHours: number;
@@ -399,6 +403,10 @@ export function parseEnvironment(env: Environment): AppConfig {
       sendsPerIpPerHour: parsed.VERIFICATION_SENDS_PER_IP_PER_HOUR,
     },
     dinerSession: { days: parsed.DINER_SESSION_DAYS },
+    measurement: {
+      queueMaxBatches: parsed.MEASUREMENT_QUEUE_MAX_BATCHES,
+      workerConcurrency: parsed.MEASUREMENT_WORKER_CONCURRENCY,
+    },
     interactions: {
       commentsPerDinerPerHour: parsed.COMMENTS_PER_DINER_PER_HOUR,
       commentOverdueHours: parsed.COMMENT_OVERDUE_HOURS,

@@ -1,4 +1,5 @@
 import type { DynamicModule, INestApplication, Type } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
 import type { App } from 'supertest/types';
 import { AppModule } from '../../src/app.module';
@@ -38,10 +39,10 @@ export async function createTestApp(
     .overrideProvider(APP_CONFIG)
     .useValue(config)
     .compile();
-  const app = moduleRef.createNestApplication<INestApplication<App>>({
+  const app = moduleRef.createNestApplication<NestExpressApplication>({
     logger: false,
   });
   configureApp(app, config);
   await app.init();
-  return app;
+  return app as unknown as INestApplication<App>;
 }

@@ -3,6 +3,7 @@ import { errorResponseSchema } from '@miramenu/contracts';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import type { AppConfig } from '../src/infrastructure/config/environment';
+import { asOwner } from './support/admin-fixtures';
 import { createTestApp } from './support/test-app';
 
 // Port 1 is never open locally or in CI, so connections are refused at once.
@@ -83,6 +84,30 @@ describe('Health (e2e)', () => {
     expect(errorResponseSchema.parse(report.body).message).toBe(
       'Unavailable: verification_provider',
     );
+  });
+
+  it("names measurement's partitions when tomorrow's is missing", async () => {
+    // Only this file reads /health/dependencies, so nothing else sees the gap.
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10)
+      .replaceAll('-', '');
+    await asOwner((client) =>
+      client.query(`DROP TABLE measurement.feed_entry_p${tomorrow}`),
+    );
+    try {
+      const report = await dependencyReport();
+
+      expect(report.status).toBe(503);
+      expect(errorResponseSchema.parse(report.body).message).toBe(
+        'Unavailable: measurement_partitions',
+      );
+    } finally {
+      await asOwner((client) =>
+        client.query(`SELECT measurement.maintain_feed_entry_partitions()`),
+      );
+    }
+    await expect(dependencyReport()).resolves.toMatchObject({ status: 200 });
   });
 
   it('keeps the liveness probe up while a dependency is down', async () => {

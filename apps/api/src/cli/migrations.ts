@@ -4,6 +4,7 @@ import { CreateCatalogTables1794400000000 } from '../modules/catalog/migrations/
 import { AddCatalogMedia1794500000000 } from '../modules/catalog/migrations/1794500000000-AddCatalogMedia';
 import { CreateDinersTables1794600000000 } from '../modules/diners/migrations/1794600000000-CreateDinersTables';
 import { CreateInteractionsTables1794700000000 } from '../modules/interactions/migrations/1794700000000-CreateInteractionsTables';
+import { CreateMeasurementTables1794800000000 } from '../modules/measurement/migrations/1794800000000-CreateMeasurementTables';
 
 /**
  * Every migration, in the order they were written. The migration CLI and the e2e tests
@@ -16,4 +17,5 @@ export const MIGRATIONS = [
   AddCatalogMedia1794500000000,
   CreateDinersTables1794600000000,
   CreateInteractionsTables1794700000000,
+  CreateMeasurementTables1794800000000,
 ];
