@@ -9,13 +9,13 @@ import {
 } from '@miramenu/contracts';
 import type { DataSource, EntityManager } from 'typeorm';
 import { selectRows } from '../../../infrastructure/database/query';
+import { ObjectStorage } from '../../../infrastructure/storage/object-storage';
 import {
   AccessControl,
   type Actor,
   BranchDirectory,
   type BranchRef,
 } from '../../business-access';
-import { composeMenu } from '../domain/compose-menu';
 import {
   overwriteAdjustments,
   unconfirmedConflicts,
@@ -23,7 +23,6 @@ import {
 import {
   type BaseSnapshot,
   type BranchSnapshot,
-  EMPTY_BRANCH_SNAPSHOT,
 } from '../domain/menu-snapshot';
 import { type ConflictScan, scanConflicts } from './conflict-scan';
 import { DraftState } from './draft-state';
@@ -43,10 +42,10 @@ import {
   insertPublication,
   insertPublishedBase,
   insertPublishedBranch,
-  insertPublishedMenu,
   previousPublication,
   type PublicationRequest,
 } from './publication-records';
+import { recordMenuVersion } from './menu-versions';
 import { PublishedMenuService } from './published-menu.service';
 
 export interface BusinessPublicationInput {
@@ -106,7 +105,10 @@ export class PublicationService {
     private readonly directory: BranchDirectory,
     private readonly state: DraftState,
     private readonly menus: PublishedMenuService,
+    private readonly storage: ObjectStorage,
   ) {}
+
+  private readonly publicUrl = (key: string) => this.storage.publicUrl(key);
 
   /**
    * Publishes the base menu and a new menu for every branch of the business. Conflicts with
@@ -227,17 +229,13 @@ export class PublicationService {
     });
     for (const [index, branch] of branches.entries()) {
       const adjustments = published.get(branch.branch_id);
-      await insertPublishedMenu(manager, {
+      await recordMenuVersion(manager, this.publicUrl, {
         branchId: branch.branch_id,
         businessId,
         version: publication.menus[index].version,
-        baseVersion: publication.version,
-        branchVersion: adjustments?.version ?? null,
-        content: composeMenu(
-          base,
-          adjustments?.content ?? EMPTY_BRANCH_SNAPSHOT,
-        ),
-        publicationId: publication.id,
+        base: { version: publication.version, content: base },
+        branch: adjustments ?? null,
+        source: { origin: 'publication', publicationId: publication.id },
         publishedAt: publication.publishedAt,
       });
     }
@@ -323,14 +321,13 @@ export class PublicationService {
       publicationId: publication.id,
       publishedAt: publication.publishedAt,
     });
-    await insertPublishedMenu(manager, {
+    await recordMenuVersion(manager, this.publicUrl, {
       branchId: branch.id,
       businessId: branch.businessId,
       version: publication.menus[0].version,
-      baseVersion: base.version,
-      branchVersion: publication.version,
-      content: composeMenu(base.content, snapshot),
-      publicationId: publication.id,
+      base,
+      branch: { version: publication.version, content: snapshot },
+      source: { origin: 'publication', publicationId: publication.id },
       publishedAt: publication.publishedAt,
     });
     return { publication, isNew: true };

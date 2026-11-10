@@ -29,3 +29,6 @@ CLAUDE.local.md
 !.env.example
 !.env.sample
 !.env.template
+
+# Demo media from Pexels, downloaded by scripts/fetch-demo-media.mjs; never committed
+/.cache/

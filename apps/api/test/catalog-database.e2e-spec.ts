@@ -3,9 +3,10 @@ import { Client } from 'pg';
 import { parseDatabaseEnvironment } from '../src/infrastructure/config/environment';
 import { asOwner } from './support/admin-fixtures';
 
-// Postgres SQLSTATEs: insufficient privilege and foreign key violation.
+// Postgres SQLSTATEs: insufficient privilege, foreign key and unique violations.
 const PERMISSION_DENIED = '42501';
 const FOREIGN_KEY_VIOLATION = '23503';
+const UNIQUE_VIOLATION = '23505';
 
 async function sqlStateOf(
   query: Promise<unknown>,
@@ -44,6 +45,8 @@ describe('Catalog invariants enforced by Postgres (integration)', () => {
   const branchOfY = randomUUID();
   let categoryOfX: string;
   let dishOfX: string;
+  let mediaOfY: string;
+  let publicationOfY: string;
 
   beforeAll(async () => {
     await asOwner(async (client) => {
@@ -68,7 +71,54 @@ describe('Catalog invariants enforced by Postgres (integration)', () => {
           [businessX, categoryOfX],
         )
       ).rows[0].id;
+      mediaOfY = (
+        await client.query<{ id: string }>(
+          `INSERT INTO catalog.media_asset (business_id, kind, status, content_type, size_bytes)
+           VALUES ($1, 'video', 'processing', 'video/mp4', 10) RETURNING id`,
+          [businessY],
+        )
+      ).rows[0].id;
+      publicationOfY = randomUUID();
+      await client.query(
+        `INSERT INTO catalog.publication
+           (id, scope, scope_id, idempotency_key, request_fingerprint, result, published_by)
+         VALUES ($1, 'business', $2, $3, 'fingerprint', '{}'::jsonb, $4)`,
+        [publicationOfY, businessY, `key-${randomUUID()}`, randomUUID()],
+      );
+      await client.query(
+        `INSERT INTO catalog.published_base (business_id, version, content, publication_id)
+         VALUES ($1, 1, '{}'::jsonb, $2)`,
+        [businessY, publicationOfY],
+      );
     });
+  });
+
+  it("never attaches another business's medium to a dish (ADR-0038)", async () => {
+    const state = await asCatalogRole((client) =>
+      sqlStateOf(
+        client.query(
+          `UPDATE catalog.dish SET video_media_id = $2 WHERE id = $1`,
+          [dishOfX, mediaOfY],
+        ),
+      ),
+    );
+    expect(state).toBe(FOREIGN_KEY_VIOLATION);
+  });
+
+  it('never keeps two versions for the same medium in a branch (ADR-0015)', async () => {
+    const insert = (version: number) =>
+      asCatalogRole((client) =>
+        sqlStateOf(
+          client.query(
+            `INSERT INTO catalog.published_menu
+               (branch_id, business_id, version, base_version, origin, content, media_id)
+             VALUES ($1, $2, $3, 1, 'media_ready', '{}'::jsonb, $4)`,
+            [branchOfY, businessY, version, mediaOfY],
+          ),
+        ),
+      );
+    await expect(insert(1)).resolves.toBeUndefined();
+    await expect(insert(2)).resolves.toBe(UNIQUE_VIOLATION);
   });
 
   it('never lets a branch adjust a dish of another business (ADR-0019)', async () => {

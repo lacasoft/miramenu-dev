@@ -66,6 +66,9 @@ services:
     entrypoint: [/bin/sh, /etc/miramenu/start-seaweedfs.sh]
     environment:
       S3_BUCKET: ${S3_BUCKET:?run npm run env:init}
+      S3_ORIGINALS_BUCKET: ${S3_ORIGINALS_BUCKET:?run npm run env:init -- --update}
+      # The browsers that may call S3 directly: the admin uploads originals (ADR-0038).
+      S3_ALLOWED_ORIGINS: ${ADMIN_APP_URL:?},${PUBLIC_SITE_URL:?}
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?}
     volumes:

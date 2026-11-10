@@ -10,6 +10,14 @@ import type { AdminClient } from './admin-fixtures';
 export const PROFILE: Profile = {
   name: 'La Fonda',
   socialLinks: [{ network: 'instagram', url: 'https://instagram.com/lafonda' }],
+  logoId: null,
+};
+
+/** PROFILE as diners see it in the menu: with its logo resolved (none here). */
+export const MENU_PROFILE = {
+  name: PROFILE.name,
+  socialLinks: PROFILE.socialLinks,
+  logo: null,
 };
 
 /** A fresh Idempotency-Key header, as the admin app sends with each publish click. */

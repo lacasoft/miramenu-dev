@@ -18,9 +18,14 @@
   "scripts": {
     "prepare": "husky",
     "env:init": "node scripts/init-dev-env.mjs",
+    "demo:fetch-media": "node scripts/fetch-demo-media.mjs",
     "build:contracts": "npm run build -w @miramenu/contracts",
     "lint": "npm run build:contracts && npm run lint --workspaces --if-present && npm run typecheck --workspaces --if-present && npm run lint:arch",
     "lint:arch": "depcruise apps packages --config .dependency-cruiser.cjs",
     "test": "npm run build:contracts && npm run test --workspaces --if-present && npm run test:e2e --workspaces --if-present"
+  },
+  "overrides": {
+    "msgpackr-extract": "3.0.6",
+    "@nestjs/bull-shared": "12.0.0"
   }
 }

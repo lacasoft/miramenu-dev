@@ -17,7 +17,7 @@ import {
   createDishRequestSchema,
   type Dish,
   type Profile,
-  profileSchema,
+  putProfileRequestSchema,
   updateCategoryRequestSchema,
   updateDishRequestSchema,
 } from '@miramenu/contracts';
@@ -47,7 +47,7 @@ export class BaseMenuController {
   putProfile(
     @CurrentActor() actor: Actor,
     @Param('businessId', { schema: z.uuid() }) businessId: string,
-    @Body({ schema: profileSchema }) body: Profile,
+    @Body({ schema: putProfileRequestSchema }) body: Profile,
   ): Promise<Profile> {
     return this.menu.putProfile(actor, businessId, body);
   }

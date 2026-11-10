@@ -22,6 +22,8 @@ interface DishRow {
   position: number;
   available: boolean;
   removed_at: Date | null;
+  image_media_id: string | null;
+  video_media_id: string | null;
 }
 
 interface OverrideRow {
@@ -41,7 +43,8 @@ export interface Published<T> {
   content: T;
 }
 
-const DISH_COLUMNS = `id, category_id, name, description, price_cents, currency, position, available, removed_at`;
+const DISH_COLUMNS = `id, category_id, name, description, price_cents, currency, position, available, removed_at,
+  image_media_id, video_media_id`;
 const ORDER = `ORDER BY position, name COLLATE "C", id`;
 
 const toDish = (row: DishRow): SnapshotDish => ({
@@ -52,6 +55,8 @@ const toDish = (row: DishRow): SnapshotDish => ({
   priceCents: row.price_cents,
   currency: row.currency,
   position: row.position,
+  imageId: row.image_media_id,
+  videoId: row.video_media_id,
 });
 
 const toOverride = (row: OverrideRow): SnapshotOverride => ({
@@ -145,13 +150,20 @@ export async function profileOf(
   const [row] = await selectRows<{
     name: string;
     social_links: Profile['socialLinks'];
+    logo_media_id: string | null;
   }>(
     manager,
-    `SELECT name, social_links FROM catalog.profile
+    `SELECT name, social_links, logo_media_id FROM catalog.profile
      WHERE business_id = $1 AND branch_id IS NOT DISTINCT FROM $2`,
     [businessId, branchId],
   );
-  return row ? { name: row.name, socialLinks: row.social_links } : null;
+  return row
+    ? {
+        name: row.name,
+        socialLinks: row.social_links,
+        logoId: row.logo_media_id,
+      }
+    : null;
 }
 
 /** The base menu the business published last, or null before its first publication. */

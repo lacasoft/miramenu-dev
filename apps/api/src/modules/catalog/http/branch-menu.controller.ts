@@ -16,7 +16,7 @@ import {
   createBranchDishRequestSchema,
   type Override,
   type Profile,
-  profileSchema,
+  putProfileRequestSchema,
   putOverrideRequestSchema,
   updateBranchDishRequestSchema,
 } from '@miramenu/contracts';
@@ -98,7 +98,7 @@ export class BranchMenuController {
   putProfile(
     @CurrentActor() actor: Actor,
     @Param('branchId', { schema: z.uuid() }) branchId: string,
-    @Body({ schema: profileSchema }) body: Profile,
+    @Body({ schema: putProfileRequestSchema }) body: Profile,
   ): Promise<Profile> {
     return this.menu.putProfile(actor, branchId, body);
   }
