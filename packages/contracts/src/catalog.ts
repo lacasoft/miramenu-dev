@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { menuImageSchema, menuVideoSchema } from "./media.ts";
 
 /**
  * Bounds that keep a menu one small document (design: ~100 KB per menu), so drafts and
@@ -42,10 +43,19 @@ export const socialLinkSchema = z.strictObject({
   url: z.url({ protocol: /^https$/ }).max(2048),
 });
 
-/** The restaurant's profile shown on top of the menu: name and social links (logo in phase 2b). */
+/** A medium attached to a dish or profile; null detaches it. */
+const mediaRefSchema = z.uuid().nullable();
+
+/** The restaurant's profile shown on top of the menu: name, social links and logo. */
 export const profileSchema = z.strictObject({
   name: displayNameSchema,
   socialLinks: z.array(socialLinkSchema).max(MENU_LIMITS.socialLinks),
+  /** An image medium of the business (or of the branch, for a branch's own profile). */
+  logoId: mediaRefSchema,
+});
+
+export const putProfileRequestSchema = profileSchema.extend({
+  logoId: mediaRefSchema.default(null),
 });
 
 // --- Draft: categories and dishes of the base menu ---
@@ -75,11 +85,17 @@ const dishFields = {
   description: dishDescriptionSchema,
   priceCents: priceCentsSchema,
   currency: currencySchema,
+  /** Its photo: an image medium. */
+  imageId: mediaRefSchema,
+  /** Its video: a video medium; diners see the photo until the video is ready (ADR-0015). */
+  videoId: mediaRefSchema,
 };
 
 export const createDishRequestSchema = z.strictObject({
   ...dishFields,
   description: dishDescriptionSchema.default(""),
+  imageId: mediaRefSchema.default(null),
+  videoId: mediaRefSchema.default(null),
   /** Omitted: after the last dish of its category. */
   position: positionSchema.optional(),
 });
@@ -91,6 +107,8 @@ export const updateDishRequestSchema = z
     description: dishFields.description.optional(),
     priceCents: dishFields.priceCents.optional(),
     currency: dishFields.currency.optional(),
+    imageId: mediaRefSchema.optional(),
+    videoId: mediaRefSchema.optional(),
     position: positionSchema.optional(),
   })
   .refine(nonEmpty, "empty update");
@@ -116,6 +134,8 @@ export const updateBranchDishRequestSchema = z
     description: dishFields.description.optional(),
     priceCents: dishFields.priceCents.optional(),
     currency: dishFields.currency.optional(),
+    imageId: mediaRefSchema.optional(),
+    videoId: mediaRefSchema.optional(),
     position: positionSchema.optional(),
     available: z.boolean().optional(),
   })
@@ -212,6 +232,9 @@ export const menuDishSchema = z.strictObject({
   priceCents: priceCentsSchema,
   currency: currencySchema,
   available: z.boolean(),
+  /** Only ready media appear; one still processing shows up in a later version (ADR-0015). */
+  image: menuImageSchema.nullable(),
+  video: menuVideoSchema.nullable(),
 });
 
 export const menuCategorySchema = z.strictObject({
@@ -220,15 +243,23 @@ export const menuCategorySchema = z.strictObject({
   dishes: z.array(menuDishSchema).min(1),
 });
 
+export const menuProfileSchema = z.strictObject({
+  name: z.string(),
+  socialLinks: z.array(socialLinkSchema),
+  logo: menuImageSchema.nullable(),
+});
+
 export const publishedMenuSchema = z.strictObject({
   branchId: z.uuid(),
   version: versionSchema,
   publishedAt: timestamp,
-  profile: profileSchema,
+  profile: menuProfileSchema,
   categories: z.array(menuCategorySchema),
 });
 
 export type Profile = z.infer<typeof profileSchema>;
+export type PutProfileRequest = z.infer<typeof putProfileRequestSchema>;
+export type MenuProfile = z.infer<typeof menuProfileSchema>;
 export type Category = z.infer<typeof categorySchema>;
 export type Dish = z.infer<typeof dishSchema>;
 export type BranchDish = z.infer<typeof branchDishSchema>;
@@ -259,4 +290,14 @@ export const CATALOG_ERROR_CODES = {
   CATEGORY_NOT_FOUND: "CATEGORY_NOT_FOUND",
   CATEGORY_IN_USE: "CATEGORY_IN_USE",
   MENU_LIMIT_REACHED: "MENU_LIMIT_REACHED",
+  /** A medium id in the body is not one of this business (or of this branch). */
+  MEDIA_NOT_FOUND: "MEDIA_NOT_FOUND",
+  /** An image where a video goes, or the other way around. */
+  MEDIA_KIND_MISMATCH: "MEDIA_KIND_MISMATCH",
+  /** The upload was not confirmed, or the object is not in storage yet. */
+  MEDIA_NOT_UPLOADED: "MEDIA_NOT_UPLOADED",
+  /** The uploaded object is not what was signed; the medium is now failed. */
+  MEDIA_REJECTED: "MEDIA_REJECTED",
+  /** A failed medium cannot be attached; upload it again. */
+  MEDIA_FAILED: "MEDIA_FAILED",
 } as const;
