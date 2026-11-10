@@ -19,6 +19,12 @@ import {
   SUPERADMIN,
   unique,
 } from './support/admin-fixtures';
+import {
+  createCategory,
+  createDish,
+  idempotencyHeader,
+  PROFILE,
+} from './support/catalog-fixtures';
 import { createTestApp } from './support/test-app';
 
 /**
@@ -31,6 +37,10 @@ interface Fixture {
   a: BusinessFixture;
   branchA1: string;
   branchA2: string;
+  categoryA: string;
+  dishA: string;
+  /** An own dish of branch A2. */
+  ownDishA2: string;
 }
 
 type Method = 'get' | 'post' | 'patch' | 'put' | 'delete';
@@ -39,7 +49,9 @@ interface ObjectRoute {
   /** Fills the route's params with objects of business A. */
   path: (fixture: Fixture) => string;
   /** A valid body, so the request reaches the permission check instead of failing validation. */
-  body?: () => object;
+  body?: (fixture: Fixture) => object;
+  /** Headers the route requires before it checks permissions. */
+  headers?: () => Record<string, string>;
   /** Routes on a single branch, also tried by the admin of a sibling branch. */
   branchScoped?: true;
 }
@@ -92,6 +104,92 @@ const OBJECT_ROUTES: Record<string, ObjectRoute> = {
   },
   'POST /admin/businesses/:businessId/users/:userId/invitation': {
     path: (f) => `/admin/businesses/${f.a.id}/users/${f.a.adminId}/invitation`,
+  },
+  'GET /admin/businesses/:businessId/menu-draft': {
+    path: (f) => `/admin/businesses/${f.a.id}/menu-draft`,
+  },
+  'PUT /admin/businesses/:businessId/profile': {
+    path: (f) => `/admin/businesses/${f.a.id}/profile`,
+    body: () => ({ ...PROFILE, name: 'Hijacked' }),
+  },
+  'POST /admin/businesses/:businessId/categories': {
+    path: (f) => `/admin/businesses/${f.a.id}/categories`,
+    body: () => ({ name: 'Hijacked' }),
+  },
+  'PATCH /admin/businesses/:businessId/categories/:categoryId': {
+    path: (f) => `/admin/businesses/${f.a.id}/categories/${f.categoryA}`,
+    body: () => ({ name: 'Hijacked' }),
+  },
+  'DELETE /admin/businesses/:businessId/categories/:categoryId': {
+    path: (f) => `/admin/businesses/${f.a.id}/categories/${f.categoryA}`,
+  },
+  'POST /admin/businesses/:businessId/dishes': {
+    path: (f) => `/admin/businesses/${f.a.id}/dishes`,
+    body: (f) => ({
+      categoryId: f.categoryA,
+      name: 'Hijacked',
+      priceCents: 1,
+      currency: 'MXN',
+    }),
+  },
+  'PATCH /admin/businesses/:businessId/dishes/:dishId': {
+    path: (f) => `/admin/businesses/${f.a.id}/dishes/${f.dishA}`,
+    body: () => ({ name: 'Hijacked' }),
+  },
+  'DELETE /admin/businesses/:businessId/dishes/:dishId': {
+    path: (f) => `/admin/businesses/${f.a.id}/dishes/${f.dishA}`,
+  },
+  'POST /admin/businesses/:businessId/publications': {
+    path: (f) => `/admin/businesses/${f.a.id}/publications`,
+    body: () => ({ draftVersion: 0 }),
+    headers: () => idempotencyHeader(),
+  },
+  'GET /admin/branches/:branchId/menu-draft': {
+    path: (f) => `/admin/branches/${f.branchA2}/menu-draft`,
+    branchScoped: true,
+  },
+  'PUT /admin/branches/:branchId/overrides/:dishId': {
+    path: (f) => `/admin/branches/${f.branchA2}/overrides/${f.dishA}`,
+    body: () => ({ priceCents: 1, available: false, hidden: true }),
+    branchScoped: true,
+  },
+  'DELETE /admin/branches/:branchId/overrides/:dishId': {
+    path: (f) => `/admin/branches/${f.branchA2}/overrides/${f.dishA}`,
+    branchScoped: true,
+  },
+  'POST /admin/branches/:branchId/dishes': {
+    path: (f) => `/admin/branches/${f.branchA2}/dishes`,
+    body: (f) => ({
+      categoryId: f.categoryA,
+      name: 'Hijacked',
+      priceCents: 1,
+      currency: 'MXN',
+    }),
+    branchScoped: true,
+  },
+  'PATCH /admin/branches/:branchId/dishes/:dishId': {
+    path: (f) => `/admin/branches/${f.branchA2}/dishes/${f.ownDishA2}`,
+    body: () => ({ name: 'Hijacked' }),
+    branchScoped: true,
+  },
+  'DELETE /admin/branches/:branchId/dishes/:dishId': {
+    path: (f) => `/admin/branches/${f.branchA2}/dishes/${f.ownDishA2}`,
+    branchScoped: true,
+  },
+  'PUT /admin/branches/:branchId/profile': {
+    path: (f) => `/admin/branches/${f.branchA2}/profile`,
+    body: () => ({ ...PROFILE, name: 'Hijacked' }),
+    branchScoped: true,
+  },
+  'DELETE /admin/branches/:branchId/profile': {
+    path: (f) => `/admin/branches/${f.branchA2}/profile`,
+    branchScoped: true,
+  },
+  'POST /admin/branches/:branchId/publications': {
+    path: (f) => `/admin/branches/${f.branchA2}/publications`,
+    body: () => ({ draftVersion: 0 }),
+    headers: () => idempotencyHeader(),
+    branchScoped: true,
   },
 };
 
@@ -159,7 +257,24 @@ describe('Isolation of every admin route, ADR-0019 (e2e)', () => {
     ownerA = await login(app, a.adminEmail, ADMIN_PASSWORD, ip);
     const branchA1 = (await createBranch(ownerA, a.id)).id;
     const branchA2 = (await createBranch(ownerA, a.id)).id;
-    fixture = { a, branchA1, branchA2 };
+    const categoryA = await createCategory(ownerA, a.id);
+    const dishA = await createDish(ownerA, a.id, categoryA);
+    const ownDish = await ownerA
+      .send('post', `/admin/branches/${branchA2}/dishes`, {
+        categoryId: categoryA,
+        name: 'House special',
+        priceCents: 3000,
+        currency: 'MXN',
+      })
+      .expect(201);
+    fixture = {
+      a,
+      branchA1,
+      branchA2,
+      categoryA,
+      dishA,
+      ownDishA2: (ownDish.body as { id: string }).id,
+    };
 
     outsider = await login(app, b.adminEmail, ADMIN_PASSWORD, ip);
 
@@ -195,7 +310,8 @@ describe('Isolation of every admin route, ADR-0019 (e2e)', () => {
       const response = await outsider.send(
         method,
         spec.path(fixture),
-        spec.body?.(),
+        spec.body?.(fixture),
+        spec.headers?.(),
       );
       expect({ route, status: response.status }).toEqual({
         route,
@@ -211,7 +327,8 @@ describe('Isolation of every admin route, ADR-0019 (e2e)', () => {
     const response = await siblingBranchAdmin.send(
       method,
       spec.path(fixture),
-      spec.body?.(),
+      spec.body?.(fixture),
+      spec.headers?.(),
     );
     expect({ route, status: response.status }).toEqual({ route, status: 404 });
   });
@@ -227,6 +344,21 @@ describe('Isolation of every admin route, ADR-0019 (e2e)', () => {
     expect(
       users.body.items.map((user: { email: string }) => user.email),
     ).toContain(fixture.a.adminEmail);
+
+    const draft = await ownerA
+      .send('get', `/admin/businesses/${fixture.a.id}/menu-draft`)
+      .expect(200);
+    expect(JSON.stringify(draft.body)).not.toContain('Hijacked');
+    expect(draft.body.draftVersion).toBe(2);
+    expect(draft.body.dishes.map((dish: { id: string }) => dish.id)).toEqual([
+      fixture.dishA,
+    ]);
+    const branchDraft = await ownerA
+      .send('get', `/admin/branches/${fixture.branchA2}/menu-draft`)
+      .expect(200);
+    expect(JSON.stringify(branchDraft.body)).not.toContain('Hijacked');
+    expect(branchDraft.body.draftVersion).toBe(1);
+    expect(branchDraft.body.overrides).toEqual([]);
   });
 
   it('does not list business A to an admin of another business', async () => {

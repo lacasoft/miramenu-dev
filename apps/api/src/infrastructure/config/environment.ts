@@ -69,6 +69,8 @@ const environmentSchema = z
     // ADR-0016: refresh the cached QR and site resolution after 60 s, keep it 24 h.
     RESOLUTION_CACHE_REFRESH_SECONDS: positiveInt.max(3600).default(60),
     RESOLUTION_CACHE_TTL_HOURS: positiveInt.max(24 * 7).default(24),
+    MENU_CACHE_REFRESH_SECONDS: positiveInt.max(3600).default(60),
+    MENU_CACHE_TTL_HOURS: positiveInt.max(24 * 7).default(24),
     ...databaseShape,
     REDIS_HOST: nonEmpty,
     REDIS_PORT: port,
@@ -131,6 +133,7 @@ export interface AppConfig {
   adminAppUrl: string;
   adminSession: { idleMinutes: number; absoluteHours: number };
   resolutionCache: { refreshSeconds: number; ttlHours: number };
+  menuCache: { refreshSeconds: number; ttlHours: number };
   database: DatabaseConfig;
   redis: {
     host: string;
@@ -247,6 +250,10 @@ export function parseEnvironment(env: Environment): AppConfig {
     resolutionCache: {
       refreshSeconds: parsed.RESOLUTION_CACHE_REFRESH_SECONDS,
       ttlHours: parsed.RESOLUTION_CACHE_TTL_HOURS,
+    },
+    menuCache: {
+      refreshSeconds: parsed.MENU_CACHE_REFRESH_SECONDS,
+      ttlHours: parsed.MENU_CACHE_TTL_HOURS,
     },
     database: toDatabaseConfig(parsed),
     redis: {

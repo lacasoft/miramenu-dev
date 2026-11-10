@@ -15,7 +15,7 @@ import type { Actor } from '../domain/actor';
 import { AccessControl, notFound } from './access-control';
 import { findOrCreateAdminUser, setCurrentSubdomain } from './identifiers';
 import { InvitationService } from './invitation.service';
-import { changeRows, selectRows } from './sql';
+import { changeRows, selectRows } from '../../../infrastructure/database/query';
 
 interface BusinessRow {
   id: string;

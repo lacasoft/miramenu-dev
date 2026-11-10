@@ -86,6 +86,7 @@ describe('parseEnvironment', () => {
       refreshSeconds: 60,
       ttlHours: 24,
     });
+    expect(config.menuCache).toEqual({ refreshSeconds: 60, ttlHours: 24 });
     expect(config.mail.secure).toBe(false);
   });
 

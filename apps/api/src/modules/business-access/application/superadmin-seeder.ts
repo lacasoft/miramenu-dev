@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { EntityManager } from 'typeorm';
 import { InvitationService } from './invitation.service';
-import { selectRows } from './sql';
+import { selectRows } from '../../../infrastructure/database/query';
 
 export interface SeedSuperadminInput {
   email: string;

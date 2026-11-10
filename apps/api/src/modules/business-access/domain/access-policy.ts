@@ -1,7 +1,11 @@
 import type { Actor } from './actor';
 
-/** view: read the object. administer: change its settings, branches or people. */
-export type AccessLevel = 'view' | 'administer';
+/**
+ * view: read the object. operate: run a branch day to day (its menu adjustments, own
+ * dishes, profile and publication), which its branch admin may do. administer: change the
+ * object's settings, branches or people, which only its business admin may do.
+ */
+export type AccessLevel = 'view' | 'operate' | 'administer';
 
 /**
  * not_found: the object is outside the actor's scope, answered as 404 so its existence is
@@ -42,12 +46,16 @@ export function decideBranchAccess(
 ): AccessDecision {
   if (actor.isSuperadmin || isBusinessAdmin(actor, branch.businessId))
     return 'allowed';
+  // The role must name both the branch and its real business, never the branch id alone.
   const isBranchAdminOfIt = actor.roles.some(
-    (role) => role.role === 'branch_admin' && role.branchId === branch.id,
+    (role) =>
+      role.role === 'branch_admin' &&
+      role.branchId === branch.id &&
+      role.businessId === branch.businessId,
   );
   // A branch admin of another branch, even in the same business, does not see this one.
   if (!isBranchAdminOfIt) return 'not_found';
-  return level === 'view' ? 'allowed' : 'forbidden';
+  return level === 'administer' ? 'forbidden' : 'allowed';
 }
 
 /** Branches of a business the actor may list: all of them, or only the ones it manages. */

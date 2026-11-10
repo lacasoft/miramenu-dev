@@ -3,6 +3,7 @@ import { MailModule } from '../../infrastructure/mail/mail.module';
 import { RedisModule } from '../../infrastructure/redis/redis.module';
 import { AccessControl } from './application/access-control';
 import { AdminSessionService } from './application/admin-session.service';
+import { BranchDirectory } from './application/branch-directory';
 import { BranchService } from './application/branch.service';
 import { BusinessService } from './application/business.service';
 import { InvitationService } from './application/invitation.service';
@@ -34,6 +35,7 @@ import { TeamController } from './http/team.controller';
     AccessControl,
     AdminSessionService,
     AdminSessionGuard,
+    BranchDirectory,
     LoginThrottle,
     LoginService,
     InvitationService,
@@ -46,6 +48,7 @@ import { TeamController } from './http/team.controller';
   exports: [
     AccessControl,
     AdminSessionGuard,
+    BranchDirectory,
     AdminSessionService,
     SuperadminSeeder,
   ],

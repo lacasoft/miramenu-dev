@@ -90,12 +90,14 @@ export class AdminClient {
     method: 'get' | 'post' | 'patch' | 'put' | 'delete',
     path: string,
     body?: object,
+    headers: Readonly<Record<string, string>> = {},
   ) {
     const call = request(this.app.getHttpServer())
       [method](path)
       .set('Cookie', this.cookie)
       .set('Origin', ADMIN_ORIGIN)
-      .set('X-Forwarded-For', this.ip);
+      .set('X-Forwarded-For', this.ip)
+      .set(headers);
     return body === undefined ? call : call.send(body);
   }
 

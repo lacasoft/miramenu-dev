@@ -11,7 +11,7 @@ import {
   decideBusinessAccess,
 } from '../domain/access-policy';
 import type { Actor } from '../domain/actor';
-import { selectRows } from './sql';
+import { selectRows } from '../../../infrastructure/database/query';
 
 const notFound = () =>
   new ApiException(404, GENERIC_ERROR_CODES.NOT_FOUND, 'Not found');

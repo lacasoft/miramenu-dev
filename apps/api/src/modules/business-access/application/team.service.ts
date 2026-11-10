@@ -19,7 +19,7 @@ import type { Actor } from '../domain/actor';
 import { AccessControl, notFound } from './access-control';
 import { findOrCreateAdminUser } from './identifiers';
 import { InvitationService } from './invitation.service';
-import { changeRows, selectRows } from './sql';
+import { changeRows, selectRows } from '../../../infrastructure/database/query';
 
 export interface RoleTarget {
   role: AdminRole;
