@@ -7,7 +7,7 @@ import {
   idempotencyKeySchema,
   MENU_LIMITS,
   priceCentsSchema,
-  profileSchema,
+  putProfileRequestSchema,
   publishBusinessMenuRequestSchema,
   putOverrideRequestSchema,
   updateCategoryRequestSchema,
@@ -50,14 +50,14 @@ describe("currencySchema", () => {
   });
 });
 
-describe("profileSchema", () => {
+describe("putProfileRequestSchema", () => {
   it("takes HTTPS social links only", () => {
     const withLink = (url: string) => ({
       name: "La Fonda",
       socialLinks: [{ network: "instagram", url }],
     });
     assert.equal(
-      accepts(profileSchema, withLink("https://instagram.com/lafonda")),
+      accepts(putProfileRequestSchema, withLink("https://instagram.com/lafonda")),
       true,
     );
     for (const url of [
@@ -65,21 +65,21 @@ describe("profileSchema", () => {
       "javascript:alert(1)",
       "ftp://example.com",
     ]) {
-      assert.equal(accepts(profileSchema, withLink(url)), false, url);
+      assert.equal(accepts(putProfileRequestSchema, withLink(url)), false, url);
     }
   });
 
   it("bounds the number of links and refuses unknown networks", () => {
     const link = { network: "website", url: "https://lafonda.mx" };
     assert.equal(
-      accepts(profileSchema, {
+      accepts(putProfileRequestSchema, {
         name: "La Fonda",
         socialLinks: Array(MENU_LIMITS.socialLinks + 1).fill(link),
       }),
       false,
     );
     assert.equal(
-      accepts(profileSchema, {
+      accepts(putProfileRequestSchema, {
         name: "La Fonda",
         socialLinks: [{ network: "myspace", url: "https://myspace.com/x" }],
       }),
@@ -87,19 +87,44 @@ describe("profileSchema", () => {
     );
   });
 
+  it("defaults to no logo, and takes a medium id or null", () => {
+    const base = { name: "La Fonda", socialLinks: [] };
+    assert.equal(putProfileRequestSchema.parse(base).logoId, null);
+    assert.equal(
+      accepts(putProfileRequestSchema, { ...base, logoId: categoryId }),
+      true,
+    );
+    assert.equal(
+      accepts(putProfileRequestSchema, { ...base, logoId: "logo.png" }),
+      false,
+    );
+  });
+
   it("refuses a blank name", () => {
     assert.equal(
-      accepts(profileSchema, { name: "   ", socialLinks: [] }),
+      accepts(putProfileRequestSchema, { name: "   ", socialLinks: [] }),
       false,
     );
   });
 });
 
 describe("dish requests", () => {
-  it("defaults the description to empty", () => {
+  it("defaults the description to empty and the dish to no media", () => {
     const parsed = createDishRequestSchema.parse(dish);
     assert.equal(parsed.description, "");
     assert.equal(parsed.position, undefined);
+    assert.equal(parsed.imageId, null);
+    assert.equal(parsed.videoId, null);
+  });
+
+  it("detaches a medium with null and leaves it alone when omitted", () => {
+    assert.deepEqual(updateDishRequestSchema.parse({ videoId: null }), {
+      videoId: null,
+    });
+    assert.equal(
+      "imageId" in updateDishRequestSchema.parse({ priceCents: 1 }),
+      false,
+    );
   });
 
   it("refuses fields that are not part of the contract", () => {

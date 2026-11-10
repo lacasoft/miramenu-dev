@@ -26,6 +26,7 @@ import {
   createCategory,
   createDish,
   idempotencyHeader,
+  MENU_PROFILE,
   PROFILE,
   publishBranch,
   publishBusiness,
@@ -254,7 +255,7 @@ describe('Catalog drafts and the published menu (e2e)', () => {
         const body = publishedMenuSchema.parse(menu.body);
         expect(body.branchId).toBe(branchId);
         expect(body.version).toBe(1);
-        expect(body.profile).toEqual(PROFILE);
+        expect(body.profile).toEqual(MENU_PROFILE);
         // The empty "Drinks" category is left out.
         expect(body.categories.map((c) => c.name)).toEqual(['Tacos']);
         expect(body.categories[0].dishes).toEqual([
@@ -400,7 +401,9 @@ describe('Catalog drafts and the published menu (e2e)', () => {
       await publishBranch(branchAdmin, branch1).then((r) =>
         expect(r.status).toBe(201),
       );
-      expect((await menuOf(branch1).expect(200)).body.profile).toEqual(PROFILE);
+      expect((await menuOf(branch1).expect(200)).body.profile).toEqual(
+        MENU_PROFILE,
+      );
     });
 
     it('refuses an own dish in a category the business has not published', async () => {

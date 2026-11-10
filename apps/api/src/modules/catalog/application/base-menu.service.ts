@@ -9,7 +9,10 @@ import {
   type Profile,
 } from '@miramenu/contracts';
 import type { DataSource, EntityManager } from 'typeorm';
-import { selectRows } from '../../../infrastructure/database/query';
+import {
+  returningRows,
+  selectRows,
+} from '../../../infrastructure/database/query';
 import { AccessControl, type Actor } from '../../business-access';
 import { scanConflicts } from './conflict-scan';
 import { DraftState } from './draft-state';
@@ -18,6 +21,7 @@ import {
   assertCategory,
   type CategoryRow,
   DISH_RETURNING,
+  dishMediaUpdate,
   type DishRow,
   nextPosition,
   saveProfile,
@@ -25,6 +29,7 @@ import {
   toDish,
 } from './draft-rows';
 import { conflict, notFound } from './errors';
+import { assertMediaRef, assertMediaRefs, type MediaScope } from './media-refs';
 import {
   baseCategories,
   baseDishes,
@@ -43,8 +48,16 @@ export interface DishInput {
   description: string;
   priceCents: number;
   currency: string;
+  imageId: string | null;
+  videoId: string | null;
   position?: number;
 }
+
+/** The business's own media only: never a branch's (ADR-0038). */
+const businessScope = (businessId: string): MediaScope => ({
+  businessId,
+  branchId: null,
+});
 
 /**
  * The business's base menu draft: categories, dishes and profile. Changes stay in the
@@ -125,7 +138,7 @@ export class BaseMenuService {
     input: Partial<CategoryInput>,
   ): Promise<Category> {
     return this.edit(actor, businessId, async (manager) => {
-      const [row] = await selectRows<CategoryRow>(
+      const [row] = await returningRows<CategoryRow>(
         manager,
         `UPDATE catalog.category
          SET name = COALESCE($3, name), position = COALESCE($4, position), updated_at = now()
@@ -184,10 +197,12 @@ export class BaseMenuService {
         MENU_LIMITS.dishesPerBusiness,
       );
       await assertCategory(manager, businessId, input.categoryId);
+      await assertMediaRefs(manager, businessScope(businessId), input);
       const [row] = await selectRows<DishRow>(
         manager,
-        `INSERT INTO catalog.dish (business_id, category_id, name, description, price_cents, currency, position)
-         VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, ${nextPosition(
+        `INSERT INTO catalog.dish
+           (business_id, category_id, name, description, price_cents, currency, image_media_id, video_media_id, position)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9, ${nextPosition(
            'catalog.dish WHERE category_id = $2 AND branch_id IS NULL AND removed_at IS NULL',
          )}))
          ${DISH_RETURNING}`,
@@ -198,6 +213,8 @@ export class BaseMenuService {
           input.description,
           input.priceCents,
           input.currency,
+          input.imageId,
+          input.videoId,
           input.position ?? null,
         ],
       );
@@ -215,12 +232,15 @@ export class BaseMenuService {
       if (input.categoryId !== undefined) {
         await assertCategory(manager, businessId, input.categoryId);
       }
-      const [row] = await selectRows<DishRow>(
+      await assertMediaRefs(manager, businessScope(businessId), input);
+      const media = dishMediaUpdate(9, input);
+      const [row] = await returningRows<DishRow>(
         manager,
         `UPDATE catalog.dish SET
            category_id = COALESCE($3, category_id), name = COALESCE($4, name),
            description = COALESCE($5, description), price_cents = COALESCE($6, price_cents),
-           currency = COALESCE($7, currency), position = COALESCE($8, position), updated_at = now()
+           currency = COALESCE($7, currency), position = COALESCE($8, position),
+           ${media.sql}, updated_at = now()
          WHERE id = $1 AND business_id = $2 AND branch_id IS NULL AND removed_at IS NULL
          ${DISH_RETURNING}`,
         [
@@ -232,6 +252,7 @@ export class BaseMenuService {
           input.priceCents ?? null,
           input.currency ?? null,
           input.position ?? null,
+          ...media.parameters,
         ],
       );
       if (!row) throw notFound();
@@ -242,7 +263,7 @@ export class BaseMenuService {
   /** Kept as removed: the branches' adjustments of it are conflicts until the business publishes. */
   removeDish(actor: Actor, businessId: string, dishId: string): Promise<void> {
     return this.edit(actor, businessId, async (manager) => {
-      const [row] = await selectRows(
+      const [row] = await returningRows(
         manager,
         `UPDATE catalog.dish SET removed_at = now(), updated_at = now()
          WHERE id = $1 AND business_id = $2 AND branch_id IS NULL AND removed_at IS NULL
@@ -258,9 +279,17 @@ export class BaseMenuService {
     businessId: string,
     profile: Profile,
   ): Promise<Profile> {
-    return this.edit(actor, businessId, (manager) =>
-      saveProfile(manager, businessId, null, profile),
-    );
+    return this.edit(actor, businessId, async (manager) => {
+      if (profile.logoId) {
+        await assertMediaRef(
+          manager,
+          businessScope(businessId),
+          profile.logoId,
+          'image',
+        );
+      }
+      return saveProfile(manager, businessId, null, profile);
+    });
   }
 
   /** Every edit checks the permission, then bumps the draft version in the same transaction. */

@@ -11,7 +11,7 @@ const DISH_A = 'da000000-0000-4000-8000-000000000001';
 const DISH_B = 'db000000-0000-4000-8000-000000000001';
 
 const publishedBase = (prices: Record<string, number>): BaseSnapshot => ({
-  profile: { name: 'La Fonda', socialLinks: [] },
+  profile: { name: 'La Fonda', socialLinks: [], logoId: null },
   categories: [],
   dishes: Object.entries(prices).map(([id, priceCents]) => ({
     id,
@@ -21,6 +21,8 @@ const publishedBase = (prices: Record<string, number>): BaseSnapshot => ({
     priceCents,
     currency: 'MXN',
     position: 0,
+    imageId: null,
+    videoId: null,
   })),
 });
 

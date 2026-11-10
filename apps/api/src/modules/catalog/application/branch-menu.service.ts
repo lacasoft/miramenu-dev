@@ -8,7 +8,10 @@ import {
   type Profile,
 } from '@miramenu/contracts';
 import type { DataSource, EntityManager } from 'typeorm';
-import { selectRows } from '../../../infrastructure/database/query';
+import {
+  returningRows,
+  selectRows,
+} from '../../../infrastructure/database/query';
 import {
   AccessControl,
   type Actor,
@@ -19,12 +22,14 @@ import {
   assertBelowLimit,
   assertCategory,
   DISH_RETURNING,
+  dishMediaUpdate,
   type DishRow,
   nextPosition,
   saveProfile,
   toDish,
 } from './draft-rows';
 import { notFound } from './errors';
+import { assertMediaRef, assertMediaRefs, type MediaScope } from './media-refs';
 import { branchDishes, overridesOfBranch, profileOf } from './menu-store';
 import type { DishInput } from './base-menu.service';
 
@@ -37,6 +42,12 @@ export interface OverrideInput {
   available: boolean;
   hidden: boolean;
 }
+
+/** A branch uses its business's media and its own, never a sibling's (ADR-0038). */
+const branchScope = (branch: BranchRef): MediaScope => ({
+  businessId: branch.businessId,
+  branchId: branch.id,
+});
 
 const toBranchDish = (row: DishRow): BranchDish => ({
   ...toDish(row),
@@ -130,7 +141,7 @@ export class BranchMenuService {
     dishId: string,
   ): Promise<void> {
     return this.edit(actor, branchId, async (manager, branch) => {
-      const deleted = await selectRows(
+      const deleted = await returningRows(
         manager,
         `DELETE FROM catalog.branch_override WHERE branch_id = $1 AND dish_id = $2 RETURNING dish_id`,
         [branch.id, dishId],
@@ -152,11 +163,13 @@ export class BranchMenuService {
         MENU_LIMITS.dishesPerBranch,
       );
       await assertCategory(manager, branch.businessId, input.categoryId);
+      await assertMediaRefs(manager, branchScope(branch), input);
       const [row] = await selectRows<DishRow>(
         manager,
         `INSERT INTO catalog.dish
-           (business_id, branch_id, category_id, name, description, price_cents, currency, available, position)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9, ${nextPosition(
+           (business_id, branch_id, category_id, name, description, price_cents, currency, available,
+            image_media_id, video_media_id, position)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, ${nextPosition(
            `catalog.dish WHERE category_id = $3 AND removed_at IS NULL
               AND (branch_id IS NULL OR branch_id = $2)`,
          )}))
@@ -170,6 +183,8 @@ export class BranchMenuService {
           input.priceCents,
           input.currency,
           input.available,
+          input.imageId,
+          input.videoId,
           input.position ?? null,
         ],
       );
@@ -187,13 +202,15 @@ export class BranchMenuService {
       if (input.categoryId !== undefined) {
         await assertCategory(manager, branch.businessId, input.categoryId);
       }
-      const [row] = await selectRows<DishRow>(
+      await assertMediaRefs(manager, branchScope(branch), input);
+      const media = dishMediaUpdate(10, input);
+      const [row] = await returningRows<DishRow>(
         manager,
         `UPDATE catalog.dish SET
            category_id = COALESCE($3, category_id), name = COALESCE($4, name),
            description = COALESCE($5, description), price_cents = COALESCE($6, price_cents),
            currency = COALESCE($7, currency), position = COALESCE($8, position),
-           available = COALESCE($9, available), updated_at = now()
+           available = COALESCE($9, available), ${media.sql}, updated_at = now()
          WHERE id = $1 AND branch_id = $2
          ${DISH_RETURNING}`,
         [
@@ -206,6 +223,7 @@ export class BranchMenuService {
           input.currency ?? null,
           input.position ?? null,
           input.available ?? null,
+          ...media.parameters,
         ],
       );
       if (!row) throw notFound();
@@ -216,7 +234,7 @@ export class BranchMenuService {
   /** Nobody adjusts a branch's own dish, so it goes at once; its published copy stays until the next publication. */
   deleteDish(actor: Actor, branchId: string, dishId: string): Promise<void> {
     return this.edit(actor, branchId, async (manager, branch) => {
-      const deleted = await selectRows(
+      const deleted = await returningRows(
         manager,
         `DELETE FROM catalog.dish WHERE id = $1 AND branch_id = $2 RETURNING id`,
         [dishId, branch.id],
@@ -230,9 +248,17 @@ export class BranchMenuService {
     branchId: string,
     profile: Profile,
   ): Promise<Profile> {
-    return this.edit(actor, branchId, (manager, branch) =>
-      saveProfile(manager, branch.businessId, branch.id, profile),
-    );
+    return this.edit(actor, branchId, async (manager, branch) => {
+      if (profile.logoId) {
+        await assertMediaRef(
+          manager,
+          branchScope(branch),
+          profile.logoId,
+          'image',
+        );
+      }
+      return saveProfile(manager, branch.businessId, branch.id, profile);
+    });
   }
 
   /** Back to the business's profile; repeating it changes nothing. */

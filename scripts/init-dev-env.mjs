@@ -40,6 +40,7 @@ const variables = [
   ['S3_ENDPOINT', () => `http://127.0.0.1:${ports.s3}`],
   ['S3_REGION', () => 'us-east-1'],
   ['S3_BUCKET', () => 'media'],
+  ['S3_ORIGINALS_BUCKET', () => 'media-originals'],
   ['S3_ACCESS_KEY_ID', () => randomBytes(12).toString('hex')],
   ['S3_SECRET_ACCESS_KEY', secret],
   ['S3_FORCE_PATH_STYLE', () => 'true'],

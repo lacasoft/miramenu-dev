@@ -54,6 +54,12 @@ jobs:
         run: |
           node scripts/init-dev-env.mjs
           docker compose up -d --wait
+      # The media worker and its e2e tests run ffmpeg; the runner image does not ship it.
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          ffmpeg -hide_banner -version | head -n 1
       - run: npm ci --ignore-scripts
       - run: npm run build:contracts
       - run: npm run db:migrate -w api

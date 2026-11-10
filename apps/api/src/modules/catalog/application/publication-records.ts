@@ -133,6 +133,11 @@ export async function insertPublishedBranch(
   );
 }
 
+/** Why a menu version exists: a person published, or a medium it waited for became ready. */
+export type MenuSource =
+  | { origin: 'publication'; publicationId: string }
+  | { origin: 'media_ready'; mediaId: string };
+
 export async function insertPublishedMenu(
   manager: EntityManager,
   record: {
@@ -142,22 +147,28 @@ export async function insertPublishedMenu(
     baseVersion: number;
     branchVersion: number | null;
     content: MenuContent;
-    publicationId: string;
+    pendingMedia: readonly string[];
+    source: MenuSource;
     publishedAt: string;
   },
 ): Promise<void> {
+  const { source } = record;
   await manager.query(
     `INSERT INTO catalog.published_menu
-       (branch_id, business_id, version, base_version, branch_version, origin, content, publication_id, published_at)
-     VALUES ($1, $2, $3, $4, $5, 'publication', $6::jsonb, $7, $8)`,
+       (branch_id, business_id, version, base_version, branch_version, origin, content,
+        pending_media, publication_id, media_id, published_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::uuid[], $9, $10, $11)`,
     [
       record.branchId,
       record.businessId,
       record.version,
       record.baseVersion,
       record.branchVersion,
+      source.origin,
       JSON.stringify(record.content),
-      record.publicationId,
+      record.pendingMedia,
+      source.origin === 'publication' ? source.publicationId : null,
+      source.origin === 'media_ready' ? source.mediaId : null,
       record.publishedAt,
     ],
   );

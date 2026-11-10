@@ -25,9 +25,12 @@ export interface DishRow {
   currency: string;
   position: number;
   available: boolean;
+  image_media_id: string | null;
+  video_media_id: string | null;
 }
 
-export const DISH_RETURNING = `RETURNING id, category_id, name, description, price_cents, currency, position, available`;
+export const DISH_RETURNING = `RETURNING id, category_id, name, description, price_cents, currency, position, available,
+  image_media_id, video_media_id`;
 
 export const toCategory = (row: CategoryRow): Category => ({
   id: row.id,
@@ -43,6 +46,8 @@ export const toDish = (row: DishRow): Dish => ({
   priceCents: row.price_cents,
   currency: row.currency,
   position: row.position,
+  imageId: row.image_media_id,
+  videoId: row.video_media_id,
 });
 
 /**
@@ -92,11 +97,18 @@ export async function saveProfile(
   profile: Profile,
 ): Promise<Profile> {
   await manager.query(
-    `INSERT INTO catalog.profile (business_id, branch_id, name, social_links)
-     VALUES ($1, $2, $3, $4::jsonb)
+    `INSERT INTO catalog.profile (business_id, branch_id, name, social_links, logo_media_id)
+     VALUES ($1, $2, $3, $4::jsonb, $5)
      ON CONFLICT ON CONSTRAINT uq_profile
-     DO UPDATE SET name = EXCLUDED.name, social_links = EXCLUDED.social_links, updated_at = now()`,
-    [businessId, branchId, profile.name, JSON.stringify(profile.socialLinks)],
+     DO UPDATE SET name = EXCLUDED.name, social_links = EXCLUDED.social_links,
+       logo_media_id = EXCLUDED.logo_media_id, updated_at = now()`,
+    [
+      businessId,
+      branchId,
+      profile.name,
+      JSON.stringify(profile.socialLinks),
+      profile.logoId,
+    ],
   );
   return profile;
 }
@@ -104,3 +116,21 @@ export async function saveProfile(
 /** Next position after the last one, capped at the maximum. */
 export const nextPosition = (scopeSql: string) =>
   `(SELECT LEAST(COALESCE(MAX(position) + 1, 0), 10000) FROM ${scopeSql})`;
+
+/** SET fragment for a dish's media: each changes only when the update names it (null detaches). */
+export function dishMediaUpdate(
+  first: number,
+  input: { imageId?: string | null; videoId?: string | null },
+): { sql: string; parameters: unknown[] } {
+  const at = (offset: number) => `$${first + offset}`;
+  return {
+    sql: `image_media_id = CASE WHEN ${at(0)}::boolean THEN ${at(1)}::uuid ELSE image_media_id END,
+      video_media_id = CASE WHEN ${at(2)}::boolean THEN ${at(3)}::uuid ELSE video_media_id END`,
+    parameters: [
+      input.imageId !== undefined,
+      input.imageId ?? null,
+      input.videoId !== undefined,
+      input.videoId ?? null,
+    ],
+  };
+}

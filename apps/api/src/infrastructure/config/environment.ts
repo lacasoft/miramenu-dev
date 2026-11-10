@@ -80,10 +80,20 @@ const environmentSchema = z
     S3_ENDPOINT: httpUrl,
     S3_REGION: nonEmpty,
     S3_BUCKET: s3BucketName,
+    S3_ORIGINALS_BUCKET: s3BucketName,
     S3_ACCESS_KEY_ID: nonEmpty,
     S3_SECRET_ACCESS_KEY: secret,
     S3_FORCE_PATH_STYLE: flag.default(false),
     MEDIA_PUBLIC_BASE_URL: httpUrl,
+    MEDIA_UPLOAD_URL_TTL_SECONDS: positiveInt.min(60).max(3600).default(600),
+    MEDIA_STALLED_MINUTES: positiveInt.max(24 * 60).default(10),
+    MEDIA_WORKER_CONCURRENCY: positiveInt.max(16).default(1),
+    FFMPEG_PATH: nonEmpty.default('ffmpeg'),
+    FFPROBE_PATH: nonEmpty.default('ffprobe'),
+    QUEUE_PREFIX: z
+      .string()
+      .regex(/^[a-z0-9_-]{1,32}$/)
+      .default('miramenu'),
     SMTP_HOST: nonEmpty,
     SMTP_PORT: port,
     SMTP_SECURE: flag.default(false),
@@ -92,6 +102,14 @@ const environmentSchema = z
     SMTP_FROM: nonEmpty.regex(/@/),
   })
   .superRefine((env, context) => {
+    // Originals keep their EXIF (e.g. GPS) and must never be in the public bucket (ADR-0038).
+    if (env.S3_ORIGINALS_BUCKET === env.S3_BUCKET) {
+      context.addIssue({
+        code: 'custom',
+        path: ['S3_ORIGINALS_BUCKET'],
+        message: 'must differ from S3_BUCKET',
+      });
+    }
     if (env.SMTP_USER !== undefined && env.SMTP_PASSWORD === undefined) {
       context.addIssue({
         code: 'custom',
@@ -144,12 +162,23 @@ export interface AppConfig {
   storage: {
     endpoint: string;
     region: string;
+    /** Public: optimized variants, read anonymously. */
     bucket: string;
+    /** Private: the uploaded originals, read only by the API and the worker. */
+    originalsBucket: string;
     accessKeyId: string;
     secretAccessKey: string;
     forcePathStyle: boolean;
     publicBaseUrl: string;
   };
+  media: {
+    uploadUrlTtlSeconds: number;
+    stalledMinutes: number;
+    workerConcurrency: number;
+    ffmpegPath: string;
+    ffprobePath: string;
+  };
+  queue: { prefix: string };
   mail: {
     host: string;
     port: number;
@@ -266,11 +295,20 @@ export function parseEnvironment(env: Environment): AppConfig {
       endpoint: parsed.S3_ENDPOINT,
       region: parsed.S3_REGION,
       bucket: parsed.S3_BUCKET,
+      originalsBucket: parsed.S3_ORIGINALS_BUCKET,
       accessKeyId: parsed.S3_ACCESS_KEY_ID,
       secretAccessKey: parsed.S3_SECRET_ACCESS_KEY,
       forcePathStyle: parsed.S3_FORCE_PATH_STYLE,
       publicBaseUrl: parsed.MEDIA_PUBLIC_BASE_URL.replace(/\/+$/, ''),
     },
+    media: {
+      uploadUrlTtlSeconds: parsed.MEDIA_UPLOAD_URL_TTL_SECONDS,
+      stalledMinutes: parsed.MEDIA_STALLED_MINUTES,
+      workerConcurrency: parsed.MEDIA_WORKER_CONCURRENCY,
+      ffmpegPath: parsed.FFMPEG_PATH,
+      ffprobePath: parsed.FFPROBE_PATH,
+    },
+    queue: { prefix: parsed.QUEUE_PREFIX },
     mail: {
       host: parsed.SMTP_HOST,
       port: parsed.SMTP_PORT,

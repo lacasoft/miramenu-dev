@@ -33,6 +33,7 @@ const validEnvironment = (): Record<string, string> => ({
   S3_ENDPOINT: 'http://127.0.0.1:58333',
   S3_REGION: 'us-east-1',
   S3_BUCKET: 'media',
+  S3_ORIGINALS_BUCKET: 'media-originals',
   S3_ACCESS_KEY_ID: 'example_access_key',
   S3_SECRET_ACCESS_KEY: example('s3'),
   S3_FORCE_PATH_STYLE: 'true',
@@ -87,7 +88,21 @@ describe('parseEnvironment', () => {
       ttlHours: 24,
     });
     expect(config.menuCache).toEqual({ refreshSeconds: 60, ttlHours: 24 });
+    expect(config.media).toEqual({
+      uploadUrlTtlSeconds: 600,
+      stalledMinutes: 10,
+      workerConcurrency: 1,
+      ffmpegPath: 'ffmpeg',
+      ffprobePath: 'ffprobe',
+    });
+    expect(config.queue).toEqual({ prefix: 'miramenu' });
     expect(config.mail.secure).toBe(false);
+  });
+
+  it('refuses an originals bucket that is the public bucket (ADR-0038)', () => {
+    const env = { ...validEnvironment(), S3_ORIGINALS_BUCKET: 'media' };
+
+    expect(problemsOf(env)).toContain('S3_ORIGINALS_BUCKET is invalid');
   });
 
   it('names a missing variable and fails', () => {

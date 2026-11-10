@@ -1,4 +1,10 @@
-import type { MenuCategory, Profile } from '@miramenu/contracts';
+import type {
+  MenuCategory,
+  MenuImage,
+  MenuProfile,
+  MenuVideo,
+  Profile,
+} from '@miramenu/contracts';
 
 export interface SnapshotCategory {
   id: string;
@@ -14,6 +20,8 @@ export interface SnapshotDish {
   priceCents: number;
   currency: string;
   position: number;
+  imageId: string | null;
+  videoId: string | null;
 }
 
 export interface SnapshotBranchDish extends SnapshotDish {
@@ -44,9 +52,22 @@ export interface BranchSnapshot {
 
 /** The combined menu of one branch, as diners read it (ADR-0003). */
 export interface MenuContent {
-  profile: Profile;
+  profile: MenuProfile;
   categories: MenuCategory[];
 }
+
+/**
+ * What combining a menu knows of each medium it references (ADR-0015): a ready one is
+ * resolved to its URLs; a pending one (not uploaded or still processing) is left out and
+ * remembered, so a later version shows it; a failed one is just left out.
+ */
+export type MediaState =
+  | { status: 'ready'; kind: 'image'; image: MenuImage }
+  | { status: 'ready'; kind: 'video'; video: MenuVideo }
+  | { status: 'pending' }
+  | { status: 'failed' };
+
+export type MediaStates = ReadonlyMap<string, MediaState>;
 
 export const EMPTY_BRANCH_SNAPSHOT: BranchSnapshot = {
   profile: null,

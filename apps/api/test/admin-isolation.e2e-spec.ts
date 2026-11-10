@@ -41,7 +41,16 @@ interface Fixture {
   dishA: string;
   /** An own dish of branch A2. */
   ownDishA2: string;
+  /** A medium of business A, and one of branch A2, both still waiting for their upload. */
+  mediaA: string;
+  mediaA2: string;
 }
+
+const imageUpload = () => ({
+  kind: 'image',
+  contentType: 'image/jpeg',
+  sizeBytes: 1024,
+});
 
 type Method = 'get' | 'post' | 'patch' | 'put' | 'delete';
 
@@ -191,6 +200,29 @@ const OBJECT_ROUTES: Record<string, ObjectRoute> = {
     headers: () => idempotencyHeader(),
     branchScoped: true,
   },
+  'POST /admin/businesses/:businessId/media': {
+    path: (f) => `/admin/businesses/${f.a.id}/media`,
+    body: imageUpload,
+  },
+  'POST /admin/businesses/:businessId/media/:mediaId/complete': {
+    path: (f) => `/admin/businesses/${f.a.id}/media/${f.mediaA}/complete`,
+  },
+  'GET /admin/businesses/:businessId/media': {
+    path: (f) => `/admin/businesses/${f.a.id}/media`,
+  },
+  'POST /admin/branches/:branchId/media': {
+    path: (f) => `/admin/branches/${f.branchA2}/media`,
+    body: imageUpload,
+    branchScoped: true,
+  },
+  'POST /admin/branches/:branchId/media/:mediaId/complete': {
+    path: (f) => `/admin/branches/${f.branchA2}/media/${f.mediaA2}/complete`,
+    branchScoped: true,
+  },
+  'GET /admin/branches/:branchId/media': {
+    path: (f) => `/admin/branches/${f.branchA2}/media`,
+    branchScoped: true,
+  },
 };
 
 /** Admin routes without an object of a business, each with the reason. */
@@ -267,6 +299,12 @@ describe('Isolation of every admin route, ADR-0019 (e2e)', () => {
         currency: 'MXN',
       })
       .expect(201);
+    const mediaA = await ownerA
+      .send('post', `/admin/businesses/${a.id}/media`, imageUpload())
+      .expect(201);
+    const mediaA2 = await ownerA
+      .send('post', `/admin/branches/${branchA2}/media`, imageUpload())
+      .expect(201);
     fixture = {
       a,
       branchA1,
@@ -274,6 +312,8 @@ describe('Isolation of every admin route, ADR-0019 (e2e)', () => {
       categoryA,
       dishA,
       ownDishA2: (ownDish.body as { id: string }).id,
+      mediaA: (mediaA.body as { media: { id: string } }).media.id,
+      mediaA2: (mediaA2.body as { media: { id: string } }).media.id,
     };
 
     outsider = await login(app, b.adminEmail, ADMIN_PASSWORD, ip);
@@ -359,6 +399,22 @@ describe('Isolation of every admin route, ADR-0019 (e2e)', () => {
     expect(JSON.stringify(branchDraft.body)).not.toContain('Hijacked');
     expect(branchDraft.body.draftVersion).toBe(1);
     expect(branchDraft.body.overrides).toEqual([]);
+
+    const media = await ownerA
+      .send('get', `/admin/businesses/${fixture.a.id}/media`)
+      .expect(200);
+    expect(
+      media.body.items.map((item: { id: string; status: string }) => [
+        item.id,
+        item.status,
+      ]),
+    ).toEqual(
+      expect.arrayContaining([
+        [fixture.mediaA, 'pending_upload'],
+        [fixture.mediaA2, 'pending_upload'],
+      ]),
+    );
+    expect(media.body.items).toHaveLength(2);
   });
 
   it('does not list business A to an admin of another business', async () => {
