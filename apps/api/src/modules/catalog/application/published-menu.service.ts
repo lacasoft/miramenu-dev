@@ -37,9 +37,15 @@ export class PublishedMenuService {
 
   /** 404 before the branch's first publication; 503 when Postgres fails and nothing is cached. */
   async latest(branchId: string): Promise<PublishedMenu> {
-    let menu: PublishedMenu | null;
+    const menu = await this.find(branchId);
+    if (!menu) throw notFound();
+    return menu;
+  }
+
+  /** Null before the branch's first publication; 503 when Postgres fails and nothing is cached. */
+  async find(branchId: string): Promise<PublishedMenu | null> {
     try {
-      menu = await readThrough({
+      return await readThrough({
         key: menuKey(branchId),
         cache: this.cache,
         load: () => this.load(branchId),
@@ -50,8 +56,6 @@ export class PublishedMenuService {
     } catch {
       throw menuUnavailable();
     }
-    if (!menu) throw notFound();
-    return menu;
   }
 
   /**
