@@ -5,7 +5,10 @@ import type { DataSource } from 'typeorm';
 import { APP_CONFIG } from '../../../infrastructure/config/config.module';
 import type { AppConfig } from '../../../infrastructure/config/environment';
 import type { Actor } from '../domain/actor';
-import { generateSecretToken, hashSecretToken } from '../domain/secret-token';
+import {
+  generateSecretToken,
+  hashSecretToken,
+} from '../../../infrastructure/security/secret-token';
 import { changeRows, selectRows } from '../../../infrastructure/database/query';
 
 const MINUTE_MS = 60_000;
