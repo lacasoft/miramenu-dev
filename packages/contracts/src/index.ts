@@ -15,3 +15,4 @@ export {
   type PageQuery,
 } from "./pagination.ts";
 export * from "./business-access.ts";
+export * from "./catalog.ts";
