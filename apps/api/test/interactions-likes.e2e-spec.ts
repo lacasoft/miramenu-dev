@@ -12,7 +12,10 @@ import type { App } from 'supertest/types';
 import { ConfigModule } from '../src/infrastructure/config/config.module';
 import type { AppConfig } from '../src/infrastructure/config/environment';
 import { DatabaseModule } from '../src/infrastructure/database/database.module';
-import { InteractionsWorkerModule } from '../src/modules/interactions';
+import {
+  InteractionCounts,
+  InteractionsWorkerModule,
+} from '../src/modules/interactions';
 import {
   asOwner,
   clientIp,
@@ -121,6 +124,80 @@ describe('Likes (e2e)', () => {
       .expect(200);
     expect(response.headers['cache-control']).toBe('public, max-age=10');
     expect(await likesOf(restaurant.dishId)).toBe(before + 1);
+  });
+
+  it('counts for the dashboard the likes given and the comments approved within a period', async () => {
+    const [branchA, branchB, otherBranch, dish] = [
+      randomUUID(),
+      randomUUID(),
+      randomUUID(),
+      randomUUID(),
+    ];
+    await asOwner(async (client) => {
+      const insertLike = (branchId: string, createdAt: string) =>
+        client.query(
+          `INSERT INTO interactions.dish_like (branch_id, dish_id, device_id, created_at)
+           VALUES ($1, $2, $3, $4)`,
+          [branchId, dish, randomUUID(), createdAt],
+        );
+      const insertComment = (
+        branchId: string,
+        status: string,
+        submittedAt: string,
+        approvedAt: string | null,
+      ) =>
+        client.query(
+          `INSERT INTO interactions.comment
+             (branch_id, dish_id, diner_id, client_id, text, status, submitted_at, approved_at)
+           VALUES ($1, $2, $3, $4, 'Rico', $5, $6, $7)`,
+          [
+            branchId,
+            dish,
+            randomUUID(),
+            randomUUID(),
+            status,
+            submittedAt,
+            approvedAt,
+          ],
+        );
+      // The period is [Oct 1 06:00Z, Oct 3 06:00Z): Oct 1 and 2 in Mexico City.
+      await insertLike(branchA, '2026-10-01T06:00:00Z'); // first instant: counts
+      await insertLike(branchB, '2026-10-02T05:59:00Z'); // still Oct 1 local
+      await insertLike(branchA, '2026-10-02T18:00:00Z');
+      await insertLike(branchA, '2026-10-03T06:00:00Z'); // the end is excluded
+      await insertLike(otherBranch, '2026-10-01T12:00:00Z'); // not asked for
+      // Counted on the day it was approved, not the day it was written.
+      await insertComment(
+        branchA,
+        'approved',
+        '2026-09-30T12:00:00Z',
+        '2026-10-01T20:00:00Z',
+      );
+      await insertComment(
+        branchA,
+        'approved',
+        '2026-10-02T12:00:00Z',
+        '2026-10-03T07:00:00Z',
+      );
+      await insertComment(branchA, 'pending', '2026-10-01T12:00:00Z', null);
+      await insertComment(branchA, 'rejected', '2026-10-01T12:00:00Z', null);
+    });
+
+    const counts = app.get(InteractionCounts);
+    const from = new Date('2026-10-01T06:00:00Z');
+    const to = new Date('2026-10-03T06:00:00Z');
+    expect(
+      await counts.forPeriod(
+        [branchA, branchB],
+        from,
+        to,
+        'America/Mexico_City',
+      ),
+    ).toEqual([
+      { dishId: dish, day: '2026-10-01', likes: 2, comments: 1 },
+      { dishId: dish, day: '2026-10-02', likes: 1, comments: 0 },
+    ]);
+    expect(await counts.forPeriod([], from, to, 'UTC')).toEqual([]);
   });
 
   it('refuses a dish the branch hides or that is not on its menu', async () => {
