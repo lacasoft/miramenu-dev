@@ -45,9 +45,12 @@ describe('decideBusinessAccess', () => {
     }
   });
 
-  it('lets a branch admin view its business but forbids administering it', () => {
+  it('lets a branch admin view its business but forbids operating or administering it', () => {
     expect(decideBusinessAccess(branchAdminOfA1, BUSINESS_A, 'view')).toBe(
       'allowed',
+    );
+    expect(decideBusinessAccess(branchAdminOfA1, BUSINESS_A, 'operate')).toBe(
+      'forbidden',
     );
     expect(
       decideBusinessAccess(branchAdminOfA1, BUSINESS_A, 'administer'),
@@ -74,8 +77,11 @@ describe('decideBranchAccess', () => {
     }
   });
 
-  it('lets a branch admin view its own branch but not change its settings', () => {
+  it('lets a branch admin view and operate its own branch but not change its settings', () => {
     expect(decideBranchAccess(branchAdminOfA1, BRANCH_A1, 'view')).toBe(
+      'allowed',
+    );
+    expect(decideBranchAccess(branchAdminOfA1, BRANCH_A1, 'operate')).toBe(
       'allowed',
     );
     expect(decideBranchAccess(branchAdminOfA1, BRANCH_A1, 'administer')).toBe(
@@ -83,8 +89,20 @@ describe('decideBranchAccess', () => {
     );
   });
 
+  it('lets the superadmin and the business admin operate every branch of the business', () => {
+    for (const who of [superadmin, businessAdminOfA]) {
+      expect(decideBranchAccess(who, BRANCH_A2, 'operate')).toBe('allowed');
+    }
+    expect(decideBranchAccess(businessAdminOfB, BRANCH_A2, 'operate')).toBe(
+      'not_found',
+    );
+  });
+
   it('hides another branch from a branch admin, even in the same business', () => {
     expect(decideBranchAccess(branchAdminOfA1, BRANCH_A2, 'view')).toBe(
+      'not_found',
+    );
+    expect(decideBranchAccess(branchAdminOfA1, BRANCH_A2, 'operate')).toBe(
       'not_found',
     );
   });
@@ -97,9 +115,11 @@ describe('decideBranchAccess', () => {
 
   it('does not let a branch role leak to a branch with the same id in another business', () => {
     const forged = { id: BRANCH_A1.id, businessId: BUSINESS_B };
-    expect(decideBranchAccess(branchAdminOfA1, forged, 'administer')).toBe(
-      'forbidden',
-    );
+    for (const level of ['view', 'operate', 'administer'] as const) {
+      expect(decideBranchAccess(branchAdminOfA1, forged, level)).toBe(
+        'not_found',
+      );
+    }
     expect(decideBranchAccess(businessAdminOfA, forged, 'view')).toBe(
       'not_found',
     );
