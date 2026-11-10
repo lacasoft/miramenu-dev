@@ -24,7 +24,11 @@ import {
   createDish,
   idempotencyHeader,
   PROFILE,
+  publishBranch,
+  publishBusiness,
 } from './support/catalog-fixtures';
+import { DinerClient } from './support/diner-fixtures';
+import { postComment } from './support/interaction-fixtures';
 import { createTestApp } from './support/test-app';
 
 /**
@@ -44,6 +48,8 @@ interface Fixture {
   /** A medium of business A, and one of branch A2, both still waiting for their upload. */
   mediaA: string;
   mediaA2: string;
+  /** A comment on branch A2's menu, waiting for moderation. */
+  commentA2: string;
 }
 
 const imageUpload = () => ({
@@ -223,6 +229,23 @@ const OBJECT_ROUTES: Record<string, ObjectRoute> = {
     path: (f) => `/admin/branches/${f.branchA2}/media`,
     branchScoped: true,
   },
+  'GET /admin/businesses/:businessId/moderation': {
+    path: (f) => `/admin/businesses/${f.a.id}/moderation`,
+  },
+  'GET /admin/branches/:branchId/moderation': {
+    path: (f) => `/admin/branches/${f.branchA2}/moderation`,
+    branchScoped: true,
+  },
+  'POST /admin/comments/:commentId/approve': {
+    path: (f) => `/admin/comments/${f.commentA2}/approve`,
+    body: () => ({ version: 1 }),
+    branchScoped: true,
+  },
+  'POST /admin/comments/:commentId/reject': {
+    path: (f) => `/admin/comments/${f.commentA2}/reject`,
+    body: () => ({ version: 1 }),
+    branchScoped: true,
+  },
 };
 
 /** Admin routes without an object of a business, each with the reason. */
@@ -305,6 +328,15 @@ describe('Isolation of every admin route, ADR-0019 (e2e)', () => {
     const mediaA2 = await ownerA
       .send('post', `/admin/branches/${branchA2}/media`, imageUpload())
       .expect(201);
+    // A published menu on branch A2, so a diner can leave a comment to moderate.
+    await ownerA
+      .send('put', `/admin/businesses/${a.id}/profile`, PROFILE)
+      .expect(200);
+    expect((await publishBusiness(ownerA, a.id)).status).toBe(201);
+    expect((await publishBranch(ownerA, branchA2)).status).toBe(201);
+    const diner = new DinerClient(app);
+    await diner.register();
+    const commentA2 = await postComment(diner, branchA2, dishA);
     fixture = {
       a,
       branchA1,
@@ -314,6 +346,7 @@ describe('Isolation of every admin route, ADR-0019 (e2e)', () => {
       ownDishA2: (ownDish.body as { id: string }).id,
       mediaA: (mediaA.body as { media: { id: string } }).media.id,
       mediaA2: (mediaA2.body as { media: { id: string } }).media.id,
+      commentA2: commentA2.id,
     };
 
     outsider = await login(app, b.adminEmail, ADMIN_PASSWORD, ip);
@@ -389,7 +422,8 @@ describe('Isolation of every admin route, ADR-0019 (e2e)', () => {
       .send('get', `/admin/businesses/${fixture.a.id}/menu-draft`)
       .expect(200);
     expect(JSON.stringify(draft.body)).not.toContain('Hijacked');
-    expect(draft.body.draftVersion).toBe(2);
+    // The category, the dish and the profile; publishing does not change the draft.
+    expect(draft.body.draftVersion).toBe(3);
     expect(draft.body.dishes.map((dish: { id: string }) => dish.id)).toEqual([
       fixture.dishA,
     ]);
@@ -415,6 +449,13 @@ describe('Isolation of every admin route, ADR-0019 (e2e)', () => {
       ]),
     );
     expect(media.body.items).toHaveLength(2);
+
+    const moderation = await ownerA
+      .send('get', `/admin/branches/${fixture.branchA2}/moderation`)
+      .expect(200);
+    expect(moderation.body.items).toEqual([
+      expect.objectContaining({ id: fixture.commentA2, version: 1 }),
+    ]);
   });
 
   it('does not list business A to an admin of another business', async () => {

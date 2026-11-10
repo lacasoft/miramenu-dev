@@ -9,6 +9,7 @@ import { BranchMenuService } from './application/branch-menu.service';
 import { DraftState } from './application/draft-state';
 import { MediaQueue, MEDIA_QUEUE } from './application/media-queue';
 import { MediaService } from './application/media.service';
+import { MenuDishes } from './application/menu-dishes';
 import { PublicationService } from './application/publication.service';
 import { PublishedMenuService } from './application/published-menu.service';
 import { BaseMenuController } from './http/base-menu.controller';
@@ -42,8 +43,11 @@ import { PublicationController } from './http/publication.controller';
     BranchMenuService,
     MediaService,
     MediaQueue,
+    MenuDishes,
     PublicationService,
     PublishedMenuService,
   ],
+  // Contract "Confirmar que un platillo está en una sucursal" (design).
+  exports: [MenuDishes],
 })
 export class CatalogModule {}
