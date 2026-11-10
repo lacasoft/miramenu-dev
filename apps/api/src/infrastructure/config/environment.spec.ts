@@ -119,6 +119,10 @@ describe('parseEnvironment', () => {
       sendsPerIpPerHour: 30,
     });
     expect(config.dinerSession).toEqual({ days: 90 });
+    expect(config.measurement).toEqual({
+      queueMaxBatches: 50_000,
+      workerConcurrency: 2,
+    });
     expect(config.interactions).toEqual({
       commentsPerDinerPerHour: 5,
       commentOverdueHours: 24,

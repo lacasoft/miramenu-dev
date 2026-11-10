@@ -27,6 +27,21 @@ const postgres = (
   },
 });
 
+/**
+ * Measurement's partitions are created a week ahead by the worker (ADR-0041); if
+ * tomorrow's is missing, the worker has not kept them and entries will soon fail.
+ */
+const measurementPartitions = (dataSource: DataSource): DependencyCheck => ({
+  name: 'measurement_partitions',
+  check: async () => {
+    const [row] = (await dataSource.query(
+      `SELECT to_regclass('measurement.feed_entry_p' ||
+         to_char((now() AT TIME ZONE 'UTC')::date + 1, 'YYYYMMDD')) IS NOT NULL AS ready`,
+    )) as { ready: boolean }[];
+    if (!row?.ready) throw new Error("tomorrow's partition is missing");
+  },
+});
+
 const redis = (name: string, client: Redis): DependencyCheck => ({
   name,
   check: async () => {
@@ -58,6 +73,7 @@ export class HealthController {
       postgres('diners', diners),
       postgres('interactions', interactions),
       postgres('measurement', measurement),
+      measurementPartitions(measurement),
       redis('redis_cache', cache),
       redis('redis_queue', queue),
       { name: 'object_storage', check: () => storage.checkBucket() },

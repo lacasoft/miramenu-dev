@@ -58,6 +58,9 @@ const imageUpload = () => ({
   sizeBytes: 1024,
 });
 
+/** A valid period, so the request reaches the permission check instead of failing validation. */
+const METRICS_PERIOD = '?from=2026-10-01T06:00:00Z&to=2026-10-02T06:00:00Z';
+
 type Method = 'get' | 'post' | 'patch' | 'put' | 'delete';
 
 interface ObjectRoute {
@@ -245,6 +248,13 @@ const OBJECT_ROUTES: Record<string, ObjectRoute> = {
     path: (f) => `/admin/comments/${f.commentA2}/reject`,
     body: () => ({ version: 1 }),
     branchScoped: true,
+  },
+  'GET /admin/branches/:branchId/metrics': {
+    path: (f) => `/admin/branches/${f.branchA2}/metrics${METRICS_PERIOD}`,
+    branchScoped: true,
+  },
+  'GET /admin/businesses/:businessId/metrics': {
+    path: (f) => `/admin/businesses/${f.a.id}/metrics${METRICS_PERIOD}`,
   },
 };
 

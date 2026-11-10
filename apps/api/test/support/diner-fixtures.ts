@@ -120,7 +120,7 @@ export class DinerClient {
   ) {}
 
   send(
-    method: 'get' | 'post' | 'delete',
+    method: 'get' | 'post' | 'put' | 'patch' | 'delete',
     path: string,
     body?: object,
     headers: Readonly<Record<string, string>> = {},

@@ -81,7 +81,23 @@ describe('Postgres isolation between contexts, ADR-0027 (integration)', () => {
         `SELECT count(*)::int AS total FROM ${tableIn(context)}`,
       );
       expect(result.rows[0].total).toBe(1);
-      await client.query(`DELETE FROM ${tableIn(context)}`);
+    },
+  );
+
+  // ADR-0041: Measurement is append-only, so no table created in its schema, partitions
+  // included, lets its role change or delete rows; the other contexts may.
+  it.each(DATABASE_CONTEXTS)(
+    'gives the %s role UPDATE and DELETE on a new table, unless it is Measurement',
+    async (context) => {
+      const client = clientFor(context);
+      const expected =
+        context === 'measurement' ? PERMISSION_DENIED : undefined;
+      await expect(
+        sqlStateOf(client.query(`UPDATE ${tableIn(context)} SET id = 2`)),
+      ).resolves.toBe(expected);
+      await expect(
+        sqlStateOf(client.query(`DELETE FROM ${tableIn(context)}`)),
+      ).resolves.toBe(expected);
     },
   );
 
