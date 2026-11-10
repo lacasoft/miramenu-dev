@@ -67,6 +67,24 @@ describe('Health (e2e)', () => {
     );
   });
 
+  it('names the provider of verification codes when it cannot be reached', async () => {
+    const report = await dependencyReport((config) => ({
+      ...config,
+      verification: {
+        ...config.verification,
+        twilio: {
+          ...config.verification.twilio,
+          apiBaseUrl: `http://127.0.0.1:${UNREACHABLE_PORT}`,
+        },
+      },
+    }));
+
+    expect(report.status).toBe(503);
+    expect(errorResponseSchema.parse(report.body).message).toBe(
+      'Unavailable: verification_provider',
+    );
+  });
+
   it('keeps the liveness probe up while a dependency is down', async () => {
     const app = await createTestApp({
       configure: (config) => ({

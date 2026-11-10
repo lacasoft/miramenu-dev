@@ -99,6 +99,26 @@ services:
       timeout: 3s
       retries: 30
 
+  # Stand-in for Twilio's Messages API (ADR-0039): codes never leave the machine. It
+  # only runs config/twilio-simulator/server.mjs, which has no dependencies.
+  twilio-simulator:
+    image: node:26.12.1-alpine3.24@sha256:40cd011b55415bc894e45b02fdd5a5dfde056921b7d23a64c74f80497af48797
+    command: [node, /etc/miramenu/twilio-simulator.mjs]
+    user: node
+    read_only: true
+    environment:
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:?run npm run env:init -- --update}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:?}
+    volumes:
+      - ./config/twilio-simulator/server.mjs:/etc/miramenu/twilio-simulator.mjs:ro
+    ports:
+      - 127.0.0.1:${TWILIO_SIMULATOR_PORT:?run npm run env:init -- --update}:4010
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:4010/_simulator/health]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
 volumes:
   postgres-data:
   redis-data:

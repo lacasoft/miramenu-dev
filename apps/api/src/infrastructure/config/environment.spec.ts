@@ -41,6 +41,15 @@ const validEnvironment = (): Record<string, string> => ({
   SMTP_HOST: '127.0.0.1',
   SMTP_PORT: '51025',
   SMTP_FROM: 'Miramenu <no-reply@miramenu.localhost>',
+  VERIFICATION_CHANNEL: 'whatsapp',
+  TWILIO_ACCOUNT_SID: `AC${'0'.repeat(32)}`,
+  TWILIO_AUTH_TOKEN: example('twilio'),
+  TWILIO_FROM: '+15550001234',
+  TWILIO_CONTENT_SID: `HX${'0'.repeat(32)}`,
+  TWILIO_STATUS_CALLBACK_URL:
+    'https://api.miramenu.localhost/webhooks/verification/status',
+  DINER_CODE_SECRET: example('diner_codes'),
+  PRIVACY_NOTICE_VERSION: '2026-11-01',
 });
 
 const problemsOf = (env: Record<string, string | undefined>): string[] => {
@@ -97,6 +106,47 @@ describe('parseEnvironment', () => {
     });
     expect(config.queue).toEqual({ prefix: 'miramenu' });
     expect(config.mail.secure).toBe(false);
+    expect(config.verification.providerTimeoutMs).toBe(5000);
+    expect(config.verification.twilio.apiBaseUrl).toBe(
+      'https://api.twilio.com',
+    );
+    expect(config.dinerRegistration).toMatchObject({
+      codeTtlSeconds: 600,
+      codeMaxAttempts: 5,
+      resendSeconds: 60,
+      sendsPerPhonePerDay: 5,
+      sendsPerDevicePerDay: 10,
+      sendsPerIpPerHour: 30,
+    });
+    expect(config.dinerSession).toEqual({ days: 90 });
+  });
+
+  it('takes WhatsApp or SMS as the one channel of verification codes (ADR-0039)', () => {
+    const env = validEnvironment();
+    env.VERIFICATION_CHANNEL = 'sms';
+    expect(parseEnvironment(env).verification.channel).toBe('sms');
+
+    env.VERIFICATION_CHANNEL = 'email';
+    expect(problemsOf(env)).toContain('VERIFICATION_CHANNEL is invalid');
+  });
+
+  it('takes a Twilio sender as a number or a Messaging Service, and nothing else', () => {
+    const env = validEnvironment();
+    env.TWILIO_FROM = `MG${'a'.repeat(32)}`;
+    expect(parseEnvironment(env).verification.twilio.from).toBe(
+      `MG${'a'.repeat(32)}`,
+    );
+
+    env.TWILIO_FROM = 'whatsapp:+15550001234';
+    expect(problemsOf(env)).toContain('TWILIO_FROM is invalid');
+  });
+
+  it('refuses a status callback URL with a query string, which the sender appends to', () => {
+    const env = validEnvironment();
+    env.TWILIO_STATUS_CALLBACK_URL =
+      'https://api.miramenu.localhost/webhooks/verification/status?x=1';
+
+    expect(problemsOf(env)).toContain('TWILIO_STATUS_CALLBACK_URL is invalid');
   });
 
   it('refuses an originals bucket that is the public bucket (ADR-0038)', () => {
