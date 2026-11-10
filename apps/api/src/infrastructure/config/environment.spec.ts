@@ -119,6 +119,11 @@ describe('parseEnvironment', () => {
       sendsPerIpPerHour: 30,
     });
     expect(config.dinerSession).toEqual({ days: 90 });
+    expect(config.interactions).toEqual({
+      commentsPerDinerPerHour: 5,
+      commentOverdueHours: 24,
+      likeTransferIntervalSeconds: 5,
+    });
   });
 
   it('takes WhatsApp or SMS as the one channel of verification codes (ADR-0039)', () => {
