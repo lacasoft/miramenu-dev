@@ -7,7 +7,10 @@ import type { AppConfig } from '../../../infrastructure/config/environment';
 import { ApiException } from '../../../infrastructure/http/api-exception';
 import { Mailer } from '../../../infrastructure/mail/mailer';
 import { hashPassword } from '../domain/password';
-import { generateSecretToken, hashSecretToken } from '../domain/secret-token';
+import {
+  generateSecretToken,
+  hashSecretToken,
+} from '../../../infrastructure/security/secret-token';
 import { invitationEmail } from './invitation-email';
 import { changeRows, selectRows } from '../../../infrastructure/database/query';
 

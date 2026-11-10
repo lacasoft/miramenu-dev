@@ -34,6 +34,9 @@ const originList = z
 /** An http(s) origin with no path, such as https://mirame.nu or http://miramenu.localhost:5173. */
 const bareOrigin = httpUrl.refine(isBareOrigin);
 
+/** A Twilio sender: a number in E.164 or a Messaging Service (MG…). */
+const twilioSender = z.string().regex(/^(\+[1-9]\d{6,14}|MG[0-9a-fA-F]{32})$/);
+
 const databaseShape = {
   DB_HOST: nonEmpty,
   DB_PORT: port,
@@ -100,6 +103,29 @@ const environmentSchema = z
     SMTP_USER: nonEmpty.optional(),
     SMTP_PASSWORD: secret.optional(),
     SMTP_FROM: nonEmpty.regex(/@/),
+    // ADR-0039: one channel for every business, sent through Twilio.
+    VERIFICATION_CHANNEL: z.enum(['whatsapp', 'sms']),
+    // Design: the provider gets 5 s; without an answer the send is unconfirmed, never repeated.
+    VERIFICATION_PROVIDER_TIMEOUT_MS: positiveInt.max(30_000).default(5000),
+    TWILIO_API_BASE_URL: httpUrl.default('https://api.twilio.com'),
+    TWILIO_ACCOUNT_SID: z.string().regex(/^AC[0-9a-fA-F]{32}$/),
+    TWILIO_AUTH_TOKEN: secret,
+    TWILIO_FROM: twilioSender,
+    // The message text lives in this Content template, with the code as variable 1.
+    TWILIO_CONTENT_SID: z.string().regex(/^HX[0-9a-fA-F]{32}$/),
+    // The public URL Twilio posts delivery reports to; signatures are checked against it.
+    TWILIO_STATUS_CALLBACK_URL: httpUrl,
+    // Key of the HMAC that Redis keeps instead of each code and each phone number.
+    DINER_CODE_SECRET: secret,
+    // The current privacy notice; a diner shown another version is asked to see this one.
+    PRIVACY_NOTICE_VERSION: z.string().trim().min(1).max(40),
+    VERIFICATION_CODE_TTL_SECONDS: positiveInt.max(3600).default(600),
+    VERIFICATION_CODE_MAX_ATTEMPTS: positiveInt.max(20).default(5),
+    VERIFICATION_RESEND_SECONDS: positiveInt.max(3600).default(60),
+    VERIFICATION_SENDS_PER_PHONE_PER_DAY: positiveInt.max(100).default(5),
+    VERIFICATION_SENDS_PER_DEVICE_PER_DAY: positiveInt.max(100).default(10),
+    VERIFICATION_SENDS_PER_IP_PER_HOUR: positiveInt.max(10_000).default(30),
+    DINER_SESSION_DAYS: positiveInt.max(400).default(90),
   })
   .superRefine((env, context) => {
     // Originals keep their EXIF (e.g. GPS) and must never be in the public bucket (ADR-0038).
@@ -108,6 +134,13 @@ const environmentSchema = z
         code: 'custom',
         path: ['S3_ORIGINALS_BUCKET'],
         message: 'must differ from S3_BUCKET',
+      });
+    }
+    if (new URL(env.TWILIO_STATUS_CALLBACK_URL).search !== '') {
+      context.addIssue({
+        code: 'custom',
+        path: ['TWILIO_STATUS_CALLBACK_URL'],
+        message: 'must not carry a query string',
       });
     }
     if (env.SMTP_USER !== undefined && env.SMTP_PASSWORD === undefined) {
@@ -179,6 +212,29 @@ export interface AppConfig {
     ffprobePath: string;
   };
   queue: { prefix: string };
+  verification: {
+    channel: 'whatsapp' | 'sms';
+    providerTimeoutMs: number;
+    twilio: {
+      apiBaseUrl: string;
+      accountSid: string;
+      authToken: string;
+      from: string;
+      contentSid: string;
+      statusCallbackUrl: string;
+    };
+  };
+  dinerRegistration: {
+    codeSecret: string;
+    privacyNoticeVersion: string;
+    codeTtlSeconds: number;
+    codeMaxAttempts: number;
+    resendSeconds: number;
+    sendsPerPhonePerDay: number;
+    sendsPerDevicePerDay: number;
+    sendsPerIpPerHour: number;
+  };
+  dinerSession: { days: number };
   mail: {
     host: string;
     port: number;
@@ -309,6 +365,29 @@ export function parseEnvironment(env: Environment): AppConfig {
       ffprobePath: parsed.FFPROBE_PATH,
     },
     queue: { prefix: parsed.QUEUE_PREFIX },
+    verification: {
+      channel: parsed.VERIFICATION_CHANNEL,
+      providerTimeoutMs: parsed.VERIFICATION_PROVIDER_TIMEOUT_MS,
+      twilio: {
+        apiBaseUrl: parsed.TWILIO_API_BASE_URL.replace(/\/+$/, ''),
+        accountSid: parsed.TWILIO_ACCOUNT_SID,
+        authToken: parsed.TWILIO_AUTH_TOKEN,
+        from: parsed.TWILIO_FROM,
+        contentSid: parsed.TWILIO_CONTENT_SID,
+        statusCallbackUrl: parsed.TWILIO_STATUS_CALLBACK_URL,
+      },
+    },
+    dinerRegistration: {
+      codeSecret: parsed.DINER_CODE_SECRET,
+      privacyNoticeVersion: parsed.PRIVACY_NOTICE_VERSION,
+      codeTtlSeconds: parsed.VERIFICATION_CODE_TTL_SECONDS,
+      codeMaxAttempts: parsed.VERIFICATION_CODE_MAX_ATTEMPTS,
+      resendSeconds: parsed.VERIFICATION_RESEND_SECONDS,
+      sendsPerPhonePerDay: parsed.VERIFICATION_SENDS_PER_PHONE_PER_DAY,
+      sendsPerDevicePerDay: parsed.VERIFICATION_SENDS_PER_DEVICE_PER_DAY,
+      sendsPerIpPerHour: parsed.VERIFICATION_SENDS_PER_IP_PER_HOUR,
+    },
+    dinerSession: { days: parsed.DINER_SESSION_DAYS },
     mail: {
       host: parsed.SMTP_HOST,
       port: parsed.SMTP_PORT,

@@ -14,7 +14,7 @@ const mode = process.argv.includes('--force') ? 'force' : process.argv.includes(
 
 const secret = () => randomBytes(24).toString('base64url');
 const contexts = ['business_access', 'catalog', 'diners', 'interactions', 'measurement'];
-const ports = { api: 3000, postgres: 55432, redis: 56379, s3: 58333, smtp: 51025, mailpitUi: 58025 };
+const ports = { api: 3000, postgres: 55432, redis: 56379, s3: 58333, smtp: 51025, mailpitUi: 58025, twilio: 58040 };
 
 /** Every variable in order, with the value it gets when it is first written. */
 const variables = [
@@ -49,6 +49,17 @@ const variables = [
   ['SMTP_PORT', () => String(ports.smtp)],
   ['SMTP_FROM', () => '"Miramenu <no-reply@miramenu.localhost>"'],
   ['MAILPIT_UI_PORT', () => String(ports.mailpitUi)],
+  // Codes go to the local Twilio simulator (compose.yaml), never to Twilio.
+  ['VERIFICATION_CHANNEL', () => 'whatsapp'],
+  ['TWILIO_SIMULATOR_PORT', () => String(ports.twilio)],
+  ['TWILIO_API_BASE_URL', () => `http://127.0.0.1:${ports.twilio}`],
+  ['TWILIO_ACCOUNT_SID', () => `AC${randomBytes(16).toString('hex')}`],
+  ['TWILIO_AUTH_TOKEN', secret],
+  ['TWILIO_FROM', () => '+15550001234'],
+  ['TWILIO_CONTENT_SID', () => `HX${randomBytes(16).toString('hex')}`],
+  ['TWILIO_STATUS_CALLBACK_URL', () => `http://127.0.0.1:${ports.api}/webhooks/verification/status`],
+  ['DINER_CODE_SECRET', secret],
+  ['PRIVACY_NOTICE_VERSION', () => 'dev'],
 ];
 
 const line = ([name, value]) => `${name}=${value()}`;

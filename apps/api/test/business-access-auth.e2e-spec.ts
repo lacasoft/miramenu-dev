@@ -2,7 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import { errorResponseSchema, sessionActorSchema } from '@miramenu/contracts';
 import request from 'supertest';
 import type { App } from 'supertest/types';
-import { hashSecretToken } from '../src/modules/business-access/domain/secret-token';
+import { hashSecretToken } from '../src/infrastructure/security/secret-token';
 import {
   ADMIN_ORIGIN,
   ADMIN_PASSWORD,

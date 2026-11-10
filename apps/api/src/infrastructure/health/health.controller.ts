@@ -14,6 +14,7 @@ import type { DatabaseContext } from '../database/database-contexts';
 import { Mailer } from '../mail/mailer';
 import { REDIS_CACHE, REDIS_QUEUE } from '../redis/redis.module';
 import { ObjectStorage } from '../storage/object-storage';
+import { VerificationSender } from '../verification/verification-sender';
 import { type DependencyCheck, failingDependencies } from './readiness';
 
 const postgres = (
@@ -49,6 +50,7 @@ export class HealthController {
     @Inject(REDIS_QUEUE) queue: Redis,
     storage: ObjectStorage,
     mailer: Mailer,
+    verification: VerificationSender,
   ) {
     this.checks = [
       postgres('business_access', businessAccess),
@@ -60,6 +62,7 @@ export class HealthController {
       redis('redis_queue', queue),
       { name: 'object_storage', check: () => storage.checkBucket() },
       { name: 'smtp', check: () => mailer.verify() },
+      { name: 'verification_provider', check: () => verification.verify() },
     ];
   }
 
