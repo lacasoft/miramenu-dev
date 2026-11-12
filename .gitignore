@@ -32,3 +32,22 @@ CLAUDE.local.md
 
 # Demo media from Pexels, downloaded by scripts/fetch-demo-media.mjs; never committed
 /.cache/
+
+# ============================================================
+# Temp files
+# ============================================================
+*.tmp
+*.temp
+*.bak
+
+# ============================================================
+# AI assistant local tooling (not part of project)
+# ============================================================
+CLAUDE.md
+.claude/
+.pi/
+.claude-flow/
+.kimi/
+.mcp.json
+.vercel
+
