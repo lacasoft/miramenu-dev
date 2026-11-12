@@ -11,6 +11,8 @@ export interface HttpRequest {
 
 export interface HttpResponse {
   status: number;
+  /** A response header, or null; only the ones CORS exposes reach a cross-origin page. */
+  header(name: string): string | null;
   text(): Promise<string>;
 }
 

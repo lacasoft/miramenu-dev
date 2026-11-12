@@ -41,3 +41,13 @@ export {
   deviceIdOf,
   type KeyValueStore,
 } from "./device-identity.ts";
+export { phoneFromLocal } from "./phone.ts";
+export {
+  nextRegistration,
+  REGISTRATION_START,
+  secondsUntilResend,
+  type RegistrationEvent,
+  type RegistrationFailure,
+  type RegistrationProblem,
+  type RegistrationState,
+} from "./registration-flow.ts";

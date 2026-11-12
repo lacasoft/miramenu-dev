@@ -22,3 +22,26 @@ export function formatDuration(milliseconds: number): string {
   const seconds = totalSeconds % 60;
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
+
+const RELATIVE_UNITS: readonly [Intl.RelativeTimeFormatUnit, number][] = [
+  ["year", 365 * 24 * 3600],
+  ["month", 30 * 24 * 3600],
+  ["week", 7 * 24 * 3600],
+  ["day", 24 * 3600],
+  ["hour", 3600],
+  ["minute", 60],
+];
+
+/** How long ago something happened, "hace 3 horas", in the locale; "ahora" under a minute. */
+export function formatRelativeTime(
+  when: string,
+  now: number,
+  locale: string = DINER_LOCALE,
+): string {
+  const format = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  const seconds = Math.round((Date.parse(when) - now) / 1000);
+  for (const [unit, size] of RELATIVE_UNITS) {
+    if (Math.abs(seconds) >= size) return format.format(Math.round(seconds / size), unit);
+  }
+  return format.format(0, "second");
+}

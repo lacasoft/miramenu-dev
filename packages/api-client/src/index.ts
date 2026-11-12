@@ -1,6 +1,7 @@
 export type { HttpRequest, HttpResponse, Transport } from "./transport.ts";
 export {
   ApiError,
+  errorCodeOf,
   isNotFound,
   isTemporary,
   type ApiFailure,
