@@ -31,6 +31,7 @@ export default defineConfig(({ mode }) => {
     preview: server,
     test: {
       environment: "jsdom",
+      setupFiles: ["./src/test/setup.ts"],
       env: TEST_ENV,
     },
   };

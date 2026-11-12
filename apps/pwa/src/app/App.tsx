@@ -1,7 +1,7 @@
 import type { SiteAddress } from "@miramenu/diner-core";
 import { useEffect } from "react";
 import { t } from "../i18n";
-import { MenuList } from "../menu/MenuList";
+import { MenuScreen } from "../menu/MenuScreen";
 import { MenuSkeleton } from "../menu/MenuSkeleton";
 import { useBranchMenu } from "../menu/use-branch-menu";
 import { StatusScreen } from "./StatusScreen";
@@ -30,6 +30,6 @@ function BranchMenu({ address }: { address: SiteAddress }) {
     case "unavailable":
       return <StatusScreen kind="unavailable" onRetry={state.retry} />;
     case "ready":
-      return <MenuList menu={state.menu} />;
+      return <MenuScreen menu={state.menu} />;
   }
 }

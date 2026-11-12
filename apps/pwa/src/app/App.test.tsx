@@ -1,7 +1,13 @@
 import { ApiError, type DinerApi } from "@miramenu/api-client";
 import type { PublishedMenu, Resolution } from "@miramenu/contracts";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n";
 import { DinerApiContext } from "./api-context";
@@ -67,7 +73,7 @@ function renderApp(
 afterEach(cleanup);
 
 describe("the diner PWA", () => {
-  it("shows a skeleton, then the restaurant and its dishes with their prices", async () => {
+  it("shows a skeleton, then the restaurant's menu in its grid", async () => {
     renderApp({
       resolve: vi.fn(async () => RESOLUTION),
       menu: vi.fn(async () => MENU),
@@ -80,12 +86,12 @@ describe("the diner PWA", () => {
       await screen.findByRole("heading", { level: 1, name: "La Fonda" }),
     ).toBeTruthy();
     expect(
-      screen.getByRole("heading", { level: 2, name: "Tacos" }),
+      screen.getByRole("button", {
+        name: t("menu.openDish", { name: "Gringa" }),
+      }),
     ).toBeTruthy();
+    // The first dish is active: its price is in the contextual bar.
     expect(screen.getByText("$25.00")).toBeTruthy();
-    // An unavailable dish shows that instead of its price.
-    expect(screen.getByText(t("menu.dishUnavailable"))).toBeTruthy();
-    expect(screen.queryByText("$60.00")).toBeNull();
     expect(document.title).toBe("La Fonda");
   });
 

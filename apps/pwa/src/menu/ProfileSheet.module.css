@@ -1,0 +1,75 @@
+.sheet {
+  width: min(calc(100% - var(--space-24)), 28rem);
+  margin: auto auto calc(var(--space-12) + env(safe-area-inset-bottom));
+  padding: var(--space-24);
+  border: 0;
+  border-radius: var(--radius-panel);
+  background-color: var(--color-surface);
+  color: var(--color-foreground);
+  text-align: center;
+}
+
+.sheet[open] {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-16);
+}
+
+.sheet::backdrop {
+  background-color: color-mix(
+    in srgb,
+    var(--color-background) 70%,
+    transparent
+  );
+}
+
+.close {
+  justify-self: end;
+  display: grid;
+  place-items: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  margin: calc(var(--space-12) * -1) calc(var(--space-12) * -1) 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--color-foreground);
+  cursor: pointer;
+}
+
+.logo {
+  width: 6rem;
+  height: 6rem;
+  border-radius: var(--radius-pill);
+}
+
+.name {
+  margin: 0;
+  font-size: var(--text-section);
+  font-weight: 400;
+  line-height: var(--text-section-line-height);
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-16);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-pill);
+  color: var(--color-foreground);
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+  text-decoration: none;
+}
