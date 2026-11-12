@@ -1,0 +1,130 @@
+.frame {
+  position: fixed;
+  inset: 0;
+  max-width: 30rem;
+  margin: 0 auto;
+}
+
+.feed {
+  height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+}
+
+.scene {
+  position: relative;
+  height: 100dvh;
+  overflow: hidden;
+  background-color: var(--color-surface);
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.media {
+  position: absolute;
+  inset: 0;
+}
+
+.scrimTop,
+.scrimBottom {
+  position: absolute;
+  inset-inline: 0;
+  pointer-events: none;
+}
+
+.scrimTop {
+  top: 0;
+  height: 10rem;
+}
+
+.scrimBottom {
+  bottom: 0;
+  height: 60%;
+}
+
+.info {
+  position: absolute;
+  inset: auto var(--space-16)
+    calc(var(--space-24) + env(safe-area-inset-bottom));
+  display: grid;
+  gap: var(--space-8);
+}
+
+.info[data-with-controls] {
+  bottom: calc(var(--space-64) + var(--space-16) + env(safe-area-inset-bottom));
+}
+
+.name {
+  margin: 0;
+  font-size: var(--text-display);
+  font-weight: 400;
+  line-height: var(--text-display-line-height);
+}
+
+.description {
+  margin: 0;
+}
+
+.priceRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  margin-top: var(--space-8);
+}
+
+.price {
+  margin: 0;
+  font-size: var(--text-section);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--text-section-line-height);
+}
+
+.detail {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: var(--touch-target);
+  padding: 0 var(--space-12) 0 var(--space-20);
+  border-radius: var(--radius-pill);
+  color: var(--color-foreground);
+  font: inherit;
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+  cursor: pointer;
+}
+
+.arrows {
+  position: absolute;
+  top: 50%;
+  right: var(--space-12);
+  display: none;
+  gap: var(--space-8);
+  transform: translateY(-50%);
+}
+
+.arrow {
+  display: grid;
+  place-items: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  padding: 0;
+  border-radius: var(--radius-pill);
+  color: var(--color-foreground);
+  cursor: pointer;
+}
+
+.arrow:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Wide screens keep the vertical scene and add arrows beside it. */
+@media (min-width: 48rem) and (hover: hover) {
+  .arrows {
+    display: grid;
+  }
+}

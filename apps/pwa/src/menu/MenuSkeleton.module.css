@@ -1,23 +1,46 @@
 .screen {
+  position: relative;
   display: grid;
   gap: var(--space-16);
-  padding: var(--space-24) var(--mobile-margin);
+  max-width: 30rem;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: calc(var(--space-12) + env(safe-area-inset-top)) var(--space-12);
+  align-content: start;
 }
 
-.title,
-.row {
-  border-radius: var(--radius-module);
+.capsule,
+.cell {
   background-color: var(--color-surface);
   animation: pulse 1.2s var(--ease-standard) infinite alternate;
 }
 
-.title {
-  width: 60%;
-  height: var(--text-screen-title-line-height);
+.capsule {
+  height: calc(var(--touch-target) + var(--space-8));
+  border-radius: var(--radius-pill);
 }
 
-.row {
-  height: calc(var(--space-64) + var(--space-16));
+.cells {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-12);
+}
+
+.cell {
+  aspect-ratio: 1;
+  border-radius: var(--radius-module);
+}
+
+.brand {
+  position: absolute;
+  inset: 40% 0 auto;
+  margin: 0;
+  color: var(--color-accent);
+  font-size: var(--text-display);
+  letter-spacing: 0.04em;
+  line-height: var(--text-display-line-height);
+  text-align: center;
+  animation: appear var(--duration-editorial) var(--ease-standard) both;
 }
 
 @keyframes pulse {
@@ -29,9 +52,21 @@
   }
 }
 
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-8));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .title,
-  .row {
+  .capsule,
+  .cell,
+  .brand {
     animation: none;
   }
 }

@@ -1,0 +1,117 @@
+.header {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 20;
+  display: grid;
+  gap: var(--space-8);
+  max-width: 30rem;
+  margin: 0 auto;
+  padding: calc(var(--space-12) + env(safe-area-inset-top)) var(--space-12)
+    var(--space-8);
+  transition: transform var(--duration-standard) var(--ease-standard);
+}
+
+.header[data-hidden] {
+  transform: translateY(-110%);
+}
+
+.capsule {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-16);
+  border-radius: var(--radius-pill);
+}
+
+.title {
+  min-width: 0;
+  margin: 0;
+  font-size: var(--text-card);
+  font-weight: 400;
+  line-height: var(--text-card-line-height);
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-width: 0;
+  min-height: var(--touch-target);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.logo {
+  flex-shrink: 0;
+  width: var(--space-32);
+  height: var(--space-32);
+  border-radius: var(--radius-pill);
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.views {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.view {
+  display: grid;
+  place-items: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--color-foreground);
+  cursor: pointer;
+  transition: border-color var(--duration-brief) var(--ease-standard);
+}
+
+.view[aria-pressed="true"] {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.chips {
+  display: flex;
+  gap: var(--space-8);
+  margin: 0 calc(var(--space-12) * -1);
+  padding: 0 var(--space-12);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.chip {
+  flex-shrink: 0;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-16);
+  border-radius: var(--radius-pill);
+  color: var(--color-foreground);
+  font: inherit;
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+  cursor: pointer;
+}
+
+.chip[aria-pressed="true"] {
+  border-color: var(--color-accent);
+  background-color: var(--color-accent);
+  color: var(--color-accent-foreground);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header {
+    transition: none;
+  }
+}

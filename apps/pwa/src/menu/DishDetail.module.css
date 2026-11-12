@@ -1,0 +1,116 @@
+.detail {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: 30rem;
+  height: 100dvh;
+  max-height: none;
+  margin: 0 auto;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  animation: enter var(--duration-editorial) var(--ease-standard);
+}
+
+.detail::backdrop {
+  background-color: var(--color-background);
+}
+
+.still {
+  position: absolute;
+  inset: 0;
+}
+
+.scrimTop,
+.scrimBottom {
+  position: absolute;
+  inset-inline: 0;
+  pointer-events: none;
+}
+
+.scrimTop {
+  top: 0;
+  height: 45%;
+}
+
+.scrimBottom {
+  bottom: 0;
+  height: 30%;
+}
+
+.close {
+  position: absolute;
+  top: calc(var(--space-12) + env(safe-area-inset-top));
+  left: var(--space-12);
+  display: grid;
+  place-items: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  padding: 0;
+  border-radius: var(--radius-pill);
+  color: var(--color-foreground);
+  cursor: pointer;
+}
+
+.heading {
+  position: absolute;
+  inset: calc(var(--space-16) + var(--touch-target) + env(safe-area-inset-top))
+    var(--space-24) auto;
+  display: grid;
+  gap: var(--space-8);
+  text-align: center;
+}
+
+.kicker {
+  margin: 0;
+  font-size: var(--text-meta);
+  letter-spacing: 0.24em;
+  line-height: var(--text-meta-line-height);
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-display);
+  font-weight: 400;
+  line-height: var(--text-display-line-height);
+}
+
+.description {
+  margin: 0;
+}
+
+.bar {
+  position: absolute;
+  inset: auto var(--space-12)
+    calc(var(--space-12) + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  min-height: calc(var(--touch-target) + var(--space-16));
+  padding: var(--space-8) var(--space-24);
+  border-radius: var(--radius-pill);
+}
+
+.price {
+  margin: 0;
+  font-size: var(--text-section);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--text-section-line-height);
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detail {
+    animation: none;
+  }
+}

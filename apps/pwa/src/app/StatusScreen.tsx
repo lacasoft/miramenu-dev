@@ -8,6 +8,7 @@ const TEXTS = {
     "status.notPublished.description",
   ],
   unavailable: ["status.unavailable.title", "status.unavailable.description"],
+  empty: ["menu.empty.title", "menu.empty.description"],
 } as const;
 
 interface StatusScreenProps {
