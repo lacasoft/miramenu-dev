@@ -3,7 +3,7 @@ import { emailSchema } from "./business-access.ts";
 
 /**
  * Header with the anonymous id of the diner's device. The PWA creates it once and keeps it
- * in IndexedDB; registering links it to the diner's account.
+ * on the device (diner-core's deviceIdOf); registering links it to the diner's account.
  */
 export const DEVICE_ID_HEADER = "x-device-id";
 export const deviceIdSchema = z.uuid();

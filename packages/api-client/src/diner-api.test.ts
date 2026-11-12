@@ -5,6 +5,8 @@ import { createDinerApi } from "./diner-api.ts";
 import type { HttpRequest, HttpResponse, Transport } from "./transport.ts";
 
 const BRANCH = "6f1c2e0a-8b3d-4c5e-9f7a-1b2c3d4e5f60";
+const DEVICE = "9b8a7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d";
+const DISH = "2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f6a";
 const BUSINESS = "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d";
 
 const MENU = {
@@ -72,6 +74,7 @@ describe("createDinerApi", () => {
     };
     const { sent, transport } = fakeTransport(() => reply(200, resolution));
     const api = createDinerApi({
+      deviceId: () => DEVICE,
       baseUrl: "https://api.mirame.nu/",
       transport,
     });
@@ -98,6 +101,7 @@ describe("createDinerApi", () => {
       }),
     );
     await createDinerApi({
+      deviceId: () => DEVICE,
       baseUrl: "https://api.mirame.nu",
       transport,
     }).resolve({ subdomain: "tacos" });
@@ -106,7 +110,8 @@ describe("createDinerApi", () => {
 
   it("reads the published menu of a branch", async () => {
     const { sent, transport } = fakeTransport(() => reply(200, MENU));
-    const api = createDinerApi({ baseUrl: "https://api.mirame.nu", transport });
+    const api = createDinerApi({
+      deviceId: () => DEVICE, baseUrl: "https://api.mirame.nu", transport });
 
     assert.deepEqual(await api.menu(BRANCH), MENU);
     assert.equal(sent[0]?.url, `https://api.mirame.nu/branches/${BRANCH}/menu`);
@@ -117,7 +122,8 @@ describe("createDinerApi", () => {
       reply(404, envelope("NOT_FOUND")),
     );
     const error = await failureOf(
-      createDinerApi({ baseUrl: "https://api.mirame.nu", transport }).menu(
+      createDinerApi({
+      deviceId: () => DEVICE, baseUrl: "https://api.mirame.nu", transport }).menu(
         BRANCH,
       ),
     );
@@ -139,6 +145,7 @@ describe("createDinerApi", () => {
     );
     const outage = await failureOf(
       createDinerApi({
+      deviceId: () => DEVICE,
         baseUrl: "https://api.mirame.nu",
         transport: down.transport,
       }).menu(BRANCH),
@@ -151,6 +158,7 @@ describe("createDinerApi", () => {
     };
     const lost = await failureOf(
       createDinerApi({
+      deviceId: () => DEVICE,
         baseUrl: "https://api.mirame.nu",
         transport: offline,
       }).menu(BRANCH),
@@ -165,6 +173,7 @@ describe("createDinerApi", () => {
     );
     const gateway = await failureOf(
       createDinerApi({
+      deviceId: () => DEVICE,
         baseUrl: "https://api.mirame.nu",
         transport: proxyPage.transport,
       }).menu(BRANCH),
@@ -178,6 +187,7 @@ describe("createDinerApi", () => {
     );
     const drift = await failureOf(
       createDinerApi({
+      deviceId: () => DEVICE,
         baseUrl: "https://api.mirame.nu",
         transport: changed.transport,
       }).menu(BRANCH),
@@ -191,7 +201,8 @@ describe("createDinerApi", () => {
       reply(404, envelope("NOT_FOUND")),
     );
     await failureOf(
-      createDinerApi({ baseUrl: "https://api.mirame.nu", transport }).menu(
+      createDinerApi({
+      deviceId: () => DEVICE, baseUrl: "https://api.mirame.nu", transport }).menu(
         "../admin",
       ),
     );
@@ -199,5 +210,49 @@ describe("createDinerApi", () => {
       sent[0]?.url,
       "https://api.mirame.nu/branches/..%2Fadmin/menu",
     );
+  });
+});
+
+describe("the device's calls", () => {
+  const api = (transport: Transport) =>
+    createDinerApi({ deviceId: () => DEVICE, baseUrl: "https://api.mirame.nu", transport });
+
+  it("sets a like as the device, with its id and a JSON body", async () => {
+    const { sent, transport } = fakeTransport(() => reply(200, { active: true, likes: 3 }));
+
+    assert.deepEqual(await api(transport).like(BRANCH, DISH, true), { active: true, likes: 3 });
+    assert.deepEqual(sent, [
+      {
+        method: "PUT",
+        url: `https://api.mirame.nu/branches/${BRANCH}/dishes/${DISH}/like`,
+        headers: { "content-type": "application/json", "x-device-id": DEVICE },
+        body: '{"active":true}',
+      },
+    ]);
+  });
+
+  it("asks for the device's likes with its id", async () => {
+    const { sent, transport } = fakeTransport(() => reply(200, { dishIds: [DISH] }));
+
+    assert.deepEqual(await api(transport).myLikes(BRANCH), { dishIds: [DISH] });
+    assert.deepEqual(sent[0]?.headers, { "x-device-id": DEVICE });
+  });
+
+  it("reads everyone's counts with a plain GET, so no preflight is needed", async () => {
+    const counts = { dishes: [{ dishId: DISH, likes: 3, comments: 1 }] };
+    const { sent, transport } = fakeTransport(() => reply(200, counts));
+
+    assert.deepEqual(await api(transport).interactions(BRANCH), counts);
+    assert.deepEqual(sent[0], {
+      method: "GET",
+      url: `https://api.mirame.nu/branches/${BRANCH}/interactions`,
+      headers: {},
+    });
+  });
+
+  it("reports a dish that left the menu as the API's own error", async () => {
+    const { transport } = fakeTransport(() => reply(404, envelope("DISH_NOT_ON_MENU")));
+    const error = await failureOf(api(transport).like(BRANCH, DISH, true));
+    assert.equal(error.failure.kind === "http" && error.failure.code, "DISH_NOT_ON_MENU");
   });
 });
