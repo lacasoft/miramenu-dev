@@ -1,0 +1,133 @@
+/*
+ * The dashboard's composition (design-system.md): a narrow floating rail apart from the
+ * cards on desktop, a floating bar at the bottom on a phone; the header over everything.
+ */
+.shell {
+  min-height: 100dvh;
+  padding: var(--space-16) var(--mobile-margin) calc(var(--touch-target) + var(--space-64));
+}
+
+.rail {
+  position: fixed;
+  z-index: 1;
+  inset: auto var(--mobile-margin) var(--space-16);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-16);
+  border-radius: var(--radius-pill);
+  background-color: var(--dashboard-card);
+  box-shadow: 0 6px 24px rgba(25, 49, 39, 0.12);
+}
+
+.sections {
+  display: flex;
+  gap: var(--space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+  padding: var(--space-4) var(--space-8);
+  border: 0;
+  border-radius: var(--radius-field);
+  background: none;
+  color: var(--dashboard-ink);
+  font: inherit;
+  font-size: var(--text-meta);
+  line-height: var(--text-meta-line-height);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* The current section: a filled circle behind its icon, and aria-current, not color alone. */
+.icon {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-pill);
+}
+
+.item[aria-current="page"] .icon {
+  background-color: var(--dashboard-ink);
+  color: var(--dashboard-card);
+}
+
+.account {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-pill);
+  background-color: var(--dashboard-positive);
+  color: var(--dashboard-positive-text);
+  font-weight: 700;
+}
+
+.header {
+  display: grid;
+  gap: var(--space-4);
+  margin-bottom: var(--space-24);
+}
+
+.greeting {
+  margin: 0;
+  font-size: var(--text-screen-title);
+  line-height: var(--text-screen-title-line-height);
+  font-weight: 700;
+}
+
+.identity {
+  justify-self: start;
+  margin: 0;
+  padding: var(--space-4) var(--space-12);
+  border-radius: var(--radius-pill);
+  background-color: var(--dashboard-positive);
+  color: var(--dashboard-positive-text);
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+  font-weight: 600;
+}
+
+.problem {
+  margin-bottom: var(--space-16);
+}
+
+@media (min-width: 64rem) {
+  .shell {
+    display: grid;
+    grid-template-columns: 5.5rem 1fr;
+    gap: var(--space-24);
+    padding: var(--space-24) var(--space-32) var(--space-32) var(--space-24);
+  }
+
+  .rail {
+    position: sticky;
+    inset: var(--space-24) auto auto;
+    flex-direction: column;
+    justify-content: space-between;
+    height: calc(100dvh - 2 * var(--space-24));
+    padding: var(--space-24) var(--space-8);
+    border-radius: var(--radius-panel);
+  }
+
+  .sections,
+  .account {
+    flex-direction: column;
+  }
+}

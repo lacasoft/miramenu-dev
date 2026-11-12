@@ -1,0 +1,74 @@
+.home {
+  display: grid;
+  gap: var(--space-16);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-section);
+  line-height: var(--text-section-line-height);
+}
+
+.note {
+  margin: 0;
+  color: var(--dashboard-muted);
+}
+
+/* Four equal columns on desktop, as the dashboard's grid; one on a phone. */
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: var(--space-16);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.business {
+  display: grid;
+  gap: var(--space-8);
+  min-height: 8rem;
+  padding: var(--space-20);
+}
+
+.name {
+  margin: 0;
+  font-size: var(--text-card);
+  line-height: var(--text-card-line-height);
+}
+
+.subdomain {
+  margin: 0;
+  color: var(--dashboard-muted);
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+}
+
+.access {
+  align-self: end;
+  margin: 0;
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+  font-weight: 600;
+}
+
+.skeleton {
+  min-height: 8rem;
+  background-color: var(--dashboard-grid);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton {
+    animation: pulse 1.2s var(--ease-standard) infinite alternate;
+  }
+}
+
+@keyframes pulse {
+  to {
+    opacity: 0.55;
+  }
+}
+
+.more {
+  justify-self: start;
+}

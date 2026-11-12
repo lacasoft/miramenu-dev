@@ -1,0 +1,39 @@
+/* Signing in and the invitation: one white card on the mineral page. */
+.screen {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: var(--space-24) var(--mobile-margin);
+}
+
+.card {
+  display: grid;
+  gap: var(--space-24);
+  width: 100%;
+  max-width: 26rem;
+  padding: var(--space-32) var(--space-24);
+}
+
+.brand {
+  margin: 0;
+  color: var(--dashboard-muted);
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+  font-weight: 600;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-screen-title);
+  line-height: var(--text-screen-title-line-height);
+}
+
+.description {
+  margin: 0;
+  color: var(--dashboard-muted);
+}
+
+.form {
+  display: grid;
+  gap: var(--space-16);
+}

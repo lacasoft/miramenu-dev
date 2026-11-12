@@ -1,0 +1,71 @@
+/* The admin's controls on solid surfaces (dashboard): 48 px targets, a visible focus. */
+.primary,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  min-height: var(--touch-target);
+  padding: 0 var(--space-24);
+  border-radius: var(--radius-pill);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--duration-brief) var(--ease-standard);
+}
+
+.primary {
+  border: 0;
+  background-color: var(--dashboard-ink);
+  color: var(--dashboard-card);
+}
+
+.secondary {
+  border: 1px solid var(--dashboard-muted);
+  background-color: var(--dashboard-card);
+  color: var(--dashboard-ink);
+}
+
+.primary:disabled,
+.secondary:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--dashboard-ink);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+/* What went wrong: dark red on pale red (13:1), with its text, never color alone. */
+.problem {
+  margin: 0;
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-field);
+  background-color: var(--dashboard-negative);
+  color: var(--dashboard-negative-text);
+}
+
+/* A neutral word for the admin: dark green on pale green (11:1). */
+.notice {
+  margin: 0;
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-field);
+  background-color: var(--dashboard-positive);
+  color: var(--dashboard-positive-text);
+}
+
+.card {
+  border-radius: var(--radius-module);
+  background-color: var(--dashboard-card);
+}
