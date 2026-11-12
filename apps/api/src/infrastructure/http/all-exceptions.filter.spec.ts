@@ -5,7 +5,12 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { errorCodeFor, errorMessageFor } from './all-exceptions.filter';
+import { QueryFailedError } from 'typeorm';
+import {
+  errorCodeFor,
+  errorMessageFor,
+  errorStatusFor,
+} from './all-exceptions.filter';
 import { ApiException } from './api-exception';
 import { RequestValidationException } from './request-validation';
 
@@ -54,6 +59,36 @@ describe('errorCodeFor', () => {
   });
 });
 
+describe('errorStatusFor', () => {
+  it('keeps the status of an HttpException', () => {
+    expect(errorStatusFor(new NotFoundException())).toBe(404);
+    expect(errorStatusFor(new ServiceUnavailableException())).toBe(503);
+  });
+
+  it('answers 503 when Postgres cannot be reached, so the client may retry', () => {
+    const refused = Object.assign(new Error('connect ECONNREFUSED'), {
+      code: 'ECONNREFUSED',
+    });
+    const lost = new QueryFailedError(
+      'SELECT 1',
+      [],
+      new Error('Connection terminated unexpectedly'),
+    );
+    expect(errorStatusFor(refused)).toBe(503);
+    expect(errorStatusFor(lost)).toBe(503);
+    expect(errorCodeFor(refused, 503)).toBe('SERVICE_UNAVAILABLE');
+  });
+
+  it('leaves any other unexpected error as a 500', () => {
+    expect(errorStatusFor(new Error('boom'))).toBe(500);
+    expect(
+      errorStatusFor(
+        new QueryFailedError('SELECT', [], new Error('syntax error')),
+      ),
+    ).toBe(500);
+  });
+});
+
 describe('errorMessageFor', () => {
   it('keeps the message of a client error', () => {
     expect(
@@ -76,6 +111,16 @@ describe('errorMessageFor', () => {
         500,
       ),
     ).toBe('Internal server error');
+  });
+
+  it('never exposes the driver error behind a 503 either', () => {
+    const refused = Object.assign(
+      new Error('connect ECONNREFUSED 127.0.0.1:5432'),
+      { code: 'ECONNREFUSED' },
+    );
+    expect(errorMessageFor(refused, 503)).toBe(
+      'Service temporarily unavailable; try again shortly',
+    );
   });
 
   it('keeps a 503 message, which names the unavailable dependencies', () => {
