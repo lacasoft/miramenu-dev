@@ -28,6 +28,7 @@ import styles from "./FeedView.module.css";
 import { CommentCount } from "./CommentCount";
 import { LikeButton } from "./LikeButton";
 import { priceLabel } from "./price";
+import type { SceneChange } from "./use-feed-measurement";
 
 /** A card is the active one once 70% of it is on screen (the demo's valid-view share). */
 const ACTIVE_SHARE = 0.7;
@@ -43,7 +44,8 @@ interface FeedViewProps {
   /** Something sits on top (detail, profile): the feed waits. */
   suspended: boolean;
   timings: FeedTimings;
-  onActiveChange: (dishId: string) => void;
+  /** A new scene is the active one: after the feed's own advance (auto) or the diner's move. */
+  onActiveChange: (dishId: string, change: SceneChange) => void;
   onOpenDetail: (dishId: string) => void;
   onOpenComments: (dishId: string) => void;
 }
@@ -68,6 +70,8 @@ export function FeedView({
 }: FeedViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const initialId = useRef(activeId);
+  // The scene the feed's own advance is heading to, so its arrival is told apart.
+  const advancingTo = useRef<string | null>(null);
   const pageHidden = usePageHidden();
   const activeIndex = dishes.findIndex(({ dish }) => dish.id === activeId);
   const active = dishes[activeIndex];
@@ -101,13 +105,13 @@ export function FeedView({
       behavior: smooth && !reducedMotion() ? "smooth" : "auto",
     });
 
-  const goTo = (index: number) => {
-    if (dishes.length > 1 && index === dishes.length) {
-      scrollTo(containerRef.current?.querySelector("[data-clone]"));
-    } else {
-      const target = dishes[index];
-      if (target) scrollTo(sceneElement(target.dish.id));
-    }
+  const goTo = (index: number, change: SceneChange = "manual") => {
+    const looping = dishes.length > 1 && index === dishes.length;
+    // The copy of the first scene lands on the first one.
+    const target = dishes[looping ? 0 : index];
+    advancingTo.current = change === "auto" && target ? target.dish.id : null;
+    if (looping) scrollTo(containerRef.current?.querySelector("[data-clone]"));
+    else if (target) scrollTo(sceneElement(target.dish.id));
   };
 
   const advance = () => {
@@ -116,7 +120,7 @@ export function FeedView({
       return;
     }
     const next = nextSceneIndex(activeIndex, dishes.length);
-    goTo(next === 0 ? dishes.length : next);
+    goTo(next === 0 ? dishes.length : next, "auto");
   };
 
   const dispatch = (event: FeedEvent) => {
@@ -128,7 +132,10 @@ export function FeedView({
   };
   const onTimer = useEffectEvent((event: FeedEvent) => dispatch(event));
   const onActive = useEffectEvent((dishId: string) => {
-    if (dishId !== activeId) onActiveChange(dishId);
+    if (dishId === activeId) return;
+    const change = advancingTo.current === dishId ? "auto" : "manual";
+    advancingTo.current = null;
+    onActiveChange(dishId, change);
   });
   const onClone = useEffectEvent(() => {
     const first = dishes[0];

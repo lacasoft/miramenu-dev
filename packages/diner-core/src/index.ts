@@ -51,3 +51,20 @@ export {
   type RegistrationProblem,
   type RegistrationState,
 } from "./registration-flow.ts";
+export {
+  closeEntry,
+  openEntry,
+  setExposure,
+  type OpenEntry,
+} from "./feed-entry.ts";
+export {
+  createEntryOutbox,
+  flushEntries,
+  MAX_KEPT_ENTRIES,
+  memoryEntryStore,
+  settledEntryIds,
+  type EntryOutbox,
+  type EntryOutboxPorts,
+  type EntryStore,
+  type FlushResult,
+} from "./entry-outbox.ts";

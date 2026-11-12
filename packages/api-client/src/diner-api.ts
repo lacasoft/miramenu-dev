@@ -1,4 +1,5 @@
 import {
+  batchReceiptSchema,
   branchInteractionsSchema,
   codeRequestedSchema,
   DEVICE_ID_HEADER,
@@ -11,9 +12,11 @@ import {
   publicCommentPageSchema,
   publishedMenuSchema,
   resolutionSchema,
+  type BatchReceipt,
   type BranchInteractions,
   type CodeRequested,
   type DinerSession,
+  type FeedEntry,
   type LikeState,
   type MyLikes,
   type OwnComment,
@@ -104,6 +107,11 @@ export function createDinerApi({
     url: `${origin}${path}`,
     headers: { "content-type": "application/json", ...asDevice() },
     body: JSON.stringify(payload),
+  });
+  /** A batch of feed entries as the API takes it, for fetch and for sendBeacon (ADR-0011). */
+  const feedEntriesBeacon = (entries: readonly FeedEntry[]) => ({
+    url: `${origin}/feed-entries/batch`,
+    body: JSON.stringify({ deviceId: deviceId(), entries }),
   });
   const withCursor = (path: string, cursor: string | undefined) =>
     cursor === undefined ? path : `${path}?cursor=${encodeURIComponent(cursor)}`;
@@ -224,6 +232,25 @@ export function createDinerApi({
     editComment(commentId: string, text: string): Promise<OwnComment> {
       return call(json("PATCH", `/comments/${encodeURIComponent(commentId)}`, { text }), ownCommentSchema);
     },
+
+    /**
+     * Sends closed feed entries (ADR-0041) as text/plain JSON, the way sendBeacon does,
+     * so it needs no CORS preflight; the device id travels in the body.
+     */
+    sendFeedEntries(entries: readonly FeedEntry[]): Promise<BatchReceipt> {
+      const beacon = feedEntriesBeacon(entries);
+      return call(
+        {
+          method: "POST",
+          url: beacon.url,
+          headers: { "content-type": "text/plain;charset=UTF-8" },
+          body: beacon.body,
+        },
+        batchReceiptSchema,
+      );
+    },
+
+    feedEntriesBeacon,
 
     deleteComment(commentId: string): Promise<void> {
       return act({
