@@ -14,3 +14,11 @@ export function formatPrice(
   const decimals = format.resolvedOptions().maximumFractionDigits ?? 2;
   return format.format(minorUnits / 10 ** decimals);
 }
+
+/** A video's length as minutes and seconds, "0:28" or "1:05", for the grid's badge. */
+export function formatDuration(milliseconds: number): string {
+  const totalSeconds = Math.max(0, Math.round(milliseconds / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
