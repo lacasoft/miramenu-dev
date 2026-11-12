@@ -27,7 +27,7 @@ createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={createQueryClient()}>
       <DinerApiContext value={api}>
-        <App address={address} />
+        <App address={address} feedTimings={config.feed} />
       </DinerApiContext>
     </QueryClientProvider>
   </StrictMode>,

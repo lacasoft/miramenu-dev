@@ -2,6 +2,7 @@ import type { PublishedMenu } from "@miramenu/contracts";
 import {
   activeDishOf,
   effectiveCategoryId,
+  type FeedTimings,
   visibleDishes,
   type MenuLocation,
 } from "@miramenu/diner-core";
@@ -18,7 +19,13 @@ import { useMenuLocation } from "./use-menu-location";
  * A branch's published menu in its three densities, with the detail and the profile on
  * top. Where the diner is lives in the URL; this only derives what to show from it.
  */
-export function MenuScreen({ menu }: { menu: PublishedMenu }) {
+export function MenuScreen({
+  menu,
+  feedTimings,
+}: {
+  menu: PublishedMenu;
+  feedTimings: FeedTimings;
+}) {
   const { location, go, closeDetail } = useMenuLocation();
   const [profileOpen, setProfileOpen] = useState(false);
   const categoryId = effectiveCategoryId(menu, location.categoryId);
@@ -51,6 +58,7 @@ export function MenuScreen({ menu }: { menu: PublishedMenu }) {
           dishes={dishes}
           activeId={active.dish.id}
           suspended={location.detail || profileOpen}
+          timings={feedTimings}
           onActiveChange={(dishId) => move({ dishId })}
           onOpenDetail={(dishId) => move({ dishId, detail: true })}
         />

@@ -1,42 +1,55 @@
 import { largestSourceOf, type MenuVideo } from "@miramenu/diner-core";
 import { useEffect, useRef, useState } from "react";
 import { t } from "../i18n";
-import { usePageHidden } from "../platform/use-page-hidden";
 import { Icon } from "../ui/Icon";
 import { MediaImage } from "../ui/MediaImage";
+import { FeedControls, VideoProgress } from "./FeedControls";
+import controlStyles from "./FeedControls.module.css";
 import styles from "./FeedVideo.module.css";
 
+interface FeedVideoProps {
+  video: MenuVideo;
+  /** The feed runs and nothing sits on top: the video plays; otherwise it waits. */
+  playing: boolean;
+  /** The feed moves on by itself (not held, not paused). */
+  running: boolean;
+  /** A one-dish feed loops its video instead of moving on. */
+  loop: boolean;
+  onToggle: () => void;
+  onEnded: () => void;
+  /** The browser refused to autoplay: the diner gets the play button. */
+  onRefused: () => void;
+}
+
 /**
- * The active scene's video: muted autoplay inline, paused while something sits on top or
- * the page is hidden, with its progress, pause and sound. Sound only turns on when the
- * diner asks; a video that fails leaves its poster and says so (design-system §9, §14).
+ * The active scene's video: muted autoplay inline, playing only while the feed runs, with
+ * its progress, sound and pause. Sound only turns on when the diner asks; a video that
+ * fails leaves its poster and says so (design-system §9, §14).
  */
 export function FeedVideo({
   video,
-  suspended,
-}: {
-  video: MenuVideo;
-  suspended: boolean;
-}) {
+  playing,
+  running,
+  loop,
+  onToggle,
+  onEnded,
+  onRefused,
+}: FeedVideoProps) {
   const ref = useRef<HTMLVideoElement>(null);
-  const pageHidden = usePageHidden();
-  const [heldByDiner, setHeldByDiner] = useState(false);
-  const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
   const [progress, setProgress] = useState(0);
   const [failed, setFailed] = useState(false);
-  const shouldPlay = !suspended && !pageHidden && !heldByDiner && !failed;
+  const refused = useRef(onRefused);
+  useEffect(() => {
+    refused.current = onRefused;
+  });
 
   useEffect(() => {
     const element = ref.current;
     if (element === null) return;
-    if (shouldPlay) {
-      // A browser that refuses autoplay leaves the play control to the diner.
-      element.play().catch(() => setHeldByDiner(true));
-    } else {
-      element.pause();
-    }
-  }, [shouldPlay]);
+    if (playing) element.play().catch(() => refused.current());
+    else element.pause();
+  }, [playing]);
 
   if (failed) {
     return (
@@ -64,41 +77,30 @@ export function FeedVideo({
         width={video.width}
         height={video.height}
         muted={muted}
+        loop={loop}
         playsInline
         preload="auto"
-        onPlay={() => setPlaying(true)}
-        onPause={() => setPlaying(false)}
-        onEnded={() => setHeldByDiner(true)}
+        onEnded={onEnded}
         onTimeUpdate={(event) => {
           const { currentTime, duration } = event.currentTarget;
           setProgress(duration > 0 ? currentTime / duration : 0);
         }}
         onError={() => setFailed(true)}
       />
-      <div className={styles.controls}>
-        <div className={styles.track} aria-hidden="true">
-          <div
-            className={styles.progress}
-            style={{ transform: `scaleX(${progress})` }}
-          />
-        </div>
+      <FeedControls
+        progress={<VideoProgress fraction={progress} />}
+        running={running}
+        onToggle={onToggle}
+      >
         <button
           type="button"
-          className={`glass-smoke ${styles.control}`}
+          className={`glass-smoke ${controlStyles.control}`}
           aria-label={muted ? t("video.soundOn") : t("video.soundOff")}
           onClick={() => setMuted((current) => !current)}
         >
           <Icon name={muted ? "soundOff" : "soundOn"} />
         </button>
-        <button
-          type="button"
-          className={`glass-smoke ${styles.control}`}
-          aria-label={playing ? t("video.pause") : t("video.play")}
-          onClick={() => setHeldByDiner(playing)}
-        >
-          <Icon name={playing ? "pause" : "play"} />
-        </button>
-      </div>
+      </FeedControls>
     </>
   );
 }

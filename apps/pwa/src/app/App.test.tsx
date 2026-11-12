@@ -63,7 +63,7 @@ function renderApp(
   render(
     <QueryClientProvider client={client}>
       <DinerApiContext value={api as DinerApi}>
-        <App address={address} />
+        <App address={address} feedTimings={{ stillMs: 5000, holdMs: 10_000 }} />
       </DinerApiContext>
     </QueryClientProvider>,
   );
