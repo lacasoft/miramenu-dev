@@ -45,6 +45,7 @@ interface FeedViewProps {
   timings: FeedTimings;
   onActiveChange: (dishId: string) => void;
   onOpenDetail: (dishId: string) => void;
+  onOpenComments: (dishId: string) => void;
 }
 
 const reducedMotion = () =>
@@ -63,6 +64,7 @@ export function FeedView({
   timings,
   onActiveChange,
   onOpenDetail,
+  onOpenComments,
 }: FeedViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const initialId = useRef(activeId);
@@ -210,6 +212,7 @@ export function FeedView({
               (index === 0 && activeIndex === dishes.length - 1)
             }
             onOpenDetail={onOpenDetail}
+            onOpenComments={onOpenComments}
             {...(index === activeIndex
               ? {
                   live: {
@@ -235,6 +238,7 @@ export function FeedView({
             near={activeIndex === dishes.length - 1}
             clone
             onOpenDetail={onOpenDetail}
+            onOpenComments={onOpenComments}
           />
         )}
       </div>
@@ -283,6 +287,7 @@ interface FeedSceneProps {
   clone?: boolean;
   live?: LiveScene;
   onOpenDetail: (dishId: string) => void;
+  onOpenComments: (dishId: string) => void;
 }
 
 function FeedScene({
@@ -291,6 +296,7 @@ function FeedScene({
   clone = false,
   live,
   onOpenDetail,
+  onOpenComments,
 }: FeedSceneProps) {
   const media = dishMedia(dish);
   const still =
@@ -349,7 +355,12 @@ function FeedScene({
       >
         <div className={styles.rail}>
           <LikeButton dishId={dish.id} dishName={dish.name} label="below" />
-          <CommentCount dishId={dish.id} variant="rail" />
+          <CommentCount
+            dishId={dish.id}
+            dishName={dish.name}
+            variant="rail"
+            onOpen={() => onOpenComments(dish.id)}
+          />
         </div>
         <h2 className={styles.name}>{dish.name}</h2>
         {dish.description && (

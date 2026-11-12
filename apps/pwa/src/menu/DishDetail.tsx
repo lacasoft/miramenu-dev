@@ -19,9 +19,11 @@ import { priceLabel } from "./price";
 export function DishDetail({
   entry: { dish, category },
   onClose,
+  onOpenComments,
 }: {
   entry: VisibleDish;
   onClose: () => void;
+  onOpenComments: () => void;
 }) {
   const dialog = useModalDialog(onClose);
   const titleId = useId();
@@ -57,7 +59,12 @@ export function DishDetail({
         <p className={styles.price}>{priceLabel(dish)}</p>
         <span className={styles.divider} aria-hidden="true" />
         <LikeButton dishId={dish.id} dishName={dish.name} label="beside" />
-        <CommentCount dishId={dish.id} variant="inline" />
+        <CommentCount
+          dishId={dish.id}
+          dishName={dish.name}
+          variant="inline"
+          onOpen={onOpenComments}
+        />
       </div>
     </dialog>
   );

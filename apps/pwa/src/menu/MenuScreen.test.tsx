@@ -534,14 +534,21 @@ describe("likes", () => {
     expect(within(feed).getAllByRole("button", { name: /^Me gusta en /, hidden: true })).toHaveLength(5);
   });
 
-  it("counts the approved comments in the feed and the detail", async () => {
+  it("counts the approved comments in the feed and the detail, as the way into them", async () => {
     window.history.replaceState(null, "", `/centro?view=feed&dish=${SUADERO.id}&detail=1`);
     renderMenu(fakeApi({ comments: { [SUADERO.id]: 3, [PASTOR.id]: 1 } }).api);
 
     const detail = screen.getByRole("dialog", { name: "Suadero" });
-    expect(await within(detail).findByText("3 comentarios")).toBeTruthy();
-    const feed = screen.getByRole("region", { name: t("menu.dishes") });
-    expect(within(feed).getAllByText("1 comentario").length).toBeGreaterThan(0);
-    expect(within(feed).getAllByText("0 comentarios").length).toBeGreaterThan(0);
+    expect(
+      await within(detail).findByRole("button", { name: "Ver comentarios de Suadero, 3 comentarios" }),
+    ).toBeTruthy();
+    expect(within(detail).getByText("3 comentarios")).toBeTruthy();
+    const feed = screen.getByRole("region", { name: t("menu.dishes"), hidden: true });
+    expect(
+      within(feed).getAllByRole("button", { name: "Ver comentarios de Pastor, 1 comentario", hidden: true }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      within(feed).getAllByRole("button", { name: "Ver comentarios de Gringa, 0 comentarios", hidden: true }).length,
+    ).toBeGreaterThan(0);
   });
 });
