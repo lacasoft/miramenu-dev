@@ -53,11 +53,17 @@ export function useMenuLocation() {
     setLocation(next);
   }, []);
 
-  /** Leaves the detail: back to the step before it, or in place if the link opened it. */
-  const closeDetail = useCallback(() => {
-    if (isOwnStep(window.history.state)) window.history.back();
-    else go({ ...current.current, detail: false });
-  }, [go]);
+  /**
+   * Leaves a layer on top (the detail or the comments): back to the step before it, or in
+   * place if a shared link opened it.
+   */
+  const closeLayer = useCallback(
+    (layer: "detail" | "comments") => {
+      if (isOwnStep(window.history.state)) window.history.back();
+      else go({ ...current.current, [layer]: false });
+    },
+    [go],
+  );
 
-  return { location, go, closeDetail };
+  return { location, go, closeLayer };
 }

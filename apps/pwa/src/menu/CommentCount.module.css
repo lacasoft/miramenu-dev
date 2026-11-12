@@ -2,7 +2,15 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-8);
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
   margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-foreground);
+  font: inherit;
+  cursor: pointer;
   font-size: var(--text-label);
   font-variant-numeric: tabular-nums;
   line-height: var(--text-label-line-height);

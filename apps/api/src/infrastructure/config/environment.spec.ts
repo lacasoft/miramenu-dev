@@ -50,6 +50,7 @@ const validEnvironment = (): Record<string, string> => ({
     'https://api.miramenu.localhost/webhooks/verification/status',
   DINER_CODE_SECRET: example('diner_codes'),
   PRIVACY_NOTICE_VERSION: '2026-11-01',
+  PRIVACY_NOTICE_URL: 'https://example.com/aviso-de-privacidad',
 });
 
 const problemsOf = (env: Record<string, string | undefined>): string[] => {

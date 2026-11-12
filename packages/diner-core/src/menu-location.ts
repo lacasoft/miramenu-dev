@@ -16,6 +16,8 @@ export interface MenuLocation {
   categoryId: string | null;
   /** The editorial detail of the active dish is open on top. */
   detail: boolean;
+  /** The active dish's comments are open on top (of the feed or the detail). */
+  comments: boolean;
 }
 
 export const HOME_LOCATION: MenuLocation = {
@@ -23,6 +25,7 @@ export const HOME_LOCATION: MenuLocation = {
   dishId: null,
   categoryId: null,
   detail: false,
+  comments: false,
 };
 
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -56,6 +59,7 @@ export function parseMenuLocation(search: string): MenuLocation {
     categoryId:
       categoryId !== undefined && ID.test(categoryId) ? categoryId : null,
     detail: validDish !== null && values.get("detail") === "1",
+    comments: validDish !== null && values.get("comments") === "1",
   };
 }
 
@@ -67,6 +71,7 @@ export function menuLocationSearch(location: MenuLocation): string {
   if (location.categoryId !== null)
     parts.push(`category=${location.categoryId}`);
   if (location.detail && location.dishId !== null) parts.push("detail=1");
+  if (location.comments && location.dishId !== null) parts.push("comments=1");
   return parts.length === 0 ? "" : `?${parts.join("&")}`;
 }
 
@@ -87,11 +92,13 @@ export function locationAfterBack(
 
 /**
  * Whether moving between two locations deserves its own step in the history, so back
- * undoes it: opening the feed from a grid, or opening the detail. Changing density,
+ * undoes it: opening the feed from a grid, the detail or the comments. Changing density,
  * the filter or the active dish replaces the current step instead.
  */
 export function isForwardStep(from: MenuLocation, to: MenuLocation): boolean {
   return (
-    (to.detail && !from.detail) || (from.view !== "feed" && to.view === "feed")
+    (to.detail && !from.detail) ||
+    (to.comments && !from.comments) ||
+    (from.view !== "feed" && to.view === "feed")
   );
 }

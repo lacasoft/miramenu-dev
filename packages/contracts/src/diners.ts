@@ -62,6 +62,12 @@ export const verifyCodeSchema = z.strictObject({
   privacyNoticeVersion: z.string().trim().min(1).max(40),
 });
 
+/** The privacy notice in force: the version a registration must accept, and where to read it. */
+export const privacyNoticeSchema = z.strictObject({
+  version: z.string().min(1),
+  url: z.url({ protocol: /^https?$/ }),
+});
+
 export const dinerSessionSchema = z.strictObject({
   diner: z.strictObject({ id: z.uuid(), name: z.string() }),
 });
@@ -70,6 +76,7 @@ export type CodeDelivery = z.infer<typeof codeDeliverySchema>;
 export type CodeRequested = z.infer<typeof codeRequestedSchema>;
 export type VerifyCodeRequest = z.input<typeof verifyCodeSchema>;
 export type DinerSession = z.infer<typeof dinerSessionSchema>;
+export type PrivacyNotice = z.infer<typeof privacyNoticeSchema>;
 
 /** Error codes of the Diners context, besides the generic ones. */
 export const DINERS_ERROR_CODES = {

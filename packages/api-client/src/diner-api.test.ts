@@ -44,8 +44,13 @@ function fakeTransport(answer: (request: HttpRequest) => HttpResponse) {
   return { sent, transport };
 }
 
-const reply = (status: number, body: unknown): HttpResponse => ({
+const reply = (
+  status: number,
+  body: unknown,
+  headers: Readonly<Record<string, string>> = {},
+): HttpResponse => ({
   status,
+  header: (name) => headers[name.toLowerCase()] ?? null,
   text: async () => (typeof body === "string" ? body : JSON.stringify(body)),
 });
 
@@ -254,5 +259,108 @@ describe("the device's calls", () => {
     const { transport } = fakeTransport(() => reply(404, envelope("DISH_NOT_ON_MENU")));
     const error = await failureOf(api(transport).like(BRANCH, DISH, true));
     assert.equal(error.failure.kind === "http" && error.failure.code, "DISH_NOT_ON_MENU");
+  });
+});
+
+describe("registration, session and comments", () => {
+  const api = (transport: Transport) =>
+    createDinerApi({ deviceId: () => DEVICE, baseUrl: "https://api.mirame.nu", transport });
+  const COMMENT = "3e4f5a6b-7c8d-4e9f-8a1b-2c3d4e5f6a7b";
+  const OWN = {
+    id: COMMENT,
+    branchId: BRANCH,
+    dishId: DISH,
+    text: "Muy rico",
+    status: "pending",
+    version: 1,
+    submittedAt: "2026-11-12T18:00:00.000Z",
+  };
+
+  it("reads the privacy notice in force with a plain GET", async () => {
+    const notice = { version: "2026-11", url: "https://mirame.nu/privacidad" };
+    const { sent, transport } = fakeTransport(() => reply(200, notice));
+    assert.deepEqual(await api(transport).privacyNotice(), notice);
+    assert.deepEqual(sent[0]?.headers, {});
+  });
+
+  it("asks for a code as the device", async () => {
+    const answer = { delivery: "sent", expiresAt: "2026-11-12T18:10:00.000Z", resendAfterSeconds: 60 };
+    const { sent, transport } = fakeTransport(() => reply(202, answer));
+
+    assert.deepEqual(await api(transport).requestCode("+525512345678"), answer);
+    assert.deepEqual(sent[0], {
+      method: "POST",
+      url: "https://api.mirame.nu/registration/code",
+      headers: { "content-type": "application/json", "x-device-id": DEVICE },
+      body: '{"phone":"+525512345678"}',
+    });
+  });
+
+  it("carries how long to wait after a 429, from Retry-After", async () => {
+    const { transport } = fakeTransport(() =>
+      reply(429, envelope("TOO_MANY_REQUESTS"), { "retry-after": "42" }),
+    );
+    const error = await failureOf(api(transport).requestCode("+525512345678"));
+    assert.equal(error.failure.kind === "http" && error.failure.retryAfterSeconds, 42);
+
+    const dated = fakeTransport(() =>
+      reply(429, envelope("TOO_MANY_REQUESTS"), { "retry-after": "Wed, 21 Oct 2026 07:28:00 GMT" }),
+    );
+    const undated = await failureOf(api(dated.transport).requestCode("+525512345678"));
+    assert.equal(undated.failure.kind === "http" && undated.failure.retryAfterSeconds, undefined);
+  });
+
+  it("tells a diner without a session apart from a failure", async () => {
+    const none = fakeTransport(() => reply(401, envelope("UNAUTHENTICATED")));
+    assert.equal(await api(none.transport).session(), null);
+
+    const session = { diner: { id: COMMENT, name: "Ana" } };
+    const some = fakeTransport(() => reply(200, session));
+    assert.deepEqual(await api(some.transport).session(), session);
+
+    const down = fakeTransport(() => reply(503, envelope("SERVICE_UNAVAILABLE")));
+    await failureOf(api(down.transport).session());
+  });
+
+  it("signs out with a DELETE whose answer has no body", async () => {
+    const { sent, transport } = fakeTransport(() => reply(204, ""));
+    await api(transport).signOut();
+    assert.equal(sent[0]?.method, "DELETE");
+    assert.equal(sent[0]?.url, "https://api.mirame.nu/diner/session");
+  });
+
+  it("pages the approved comments by cursor, without custom headers", async () => {
+    const page = { items: [], nextCursor: null };
+    const { sent, transport } = fakeTransport(() => reply(200, page));
+
+    await api(transport).comments(BRANCH, DISH);
+    await api(transport).comments(BRANCH, DISH, "abc/=");
+    assert.equal(sent[0]?.url, `https://api.mirame.nu/branches/${BRANCH}/dishes/${DISH}/comments`);
+    assert.equal(sent[1]?.url, `https://api.mirame.nu/branches/${BRANCH}/dishes/${DISH}/comments?cursor=abc%2F%3D`);
+    assert.deepEqual(sent[1]?.headers, {});
+  });
+
+  it("posts, lists, edits and deletes the diner's own comments", async () => {
+    const { sent, transport } = fakeTransport((request) =>
+      request.method === "DELETE"
+        ? reply(204, "")
+        : request.url.endsWith("/comments/mine")
+          ? reply(200, { items: [OWN], nextCursor: null })
+          : reply(request.method === "POST" ? 201 : 200, OWN),
+    );
+    const client = api(transport);
+    const clientId = "4f5a6b7c-8d9e-4f0a-9b1c-2d3e4f5a6b7c";
+
+    assert.deepEqual(await client.postComment({ branchId: BRANCH, dishId: DISH, text: "Muy rico", clientId }), OWN);
+    assert.deepEqual((await client.myComments()).items, [OWN]);
+    assert.deepEqual(await client.editComment(COMMENT, "Rico"), OWN);
+    await client.deleteComment(COMMENT);
+
+    assert.deepEqual(
+      sent.map((request) => `${request.method} ${request.url.replace("https://api.mirame.nu", "")}`),
+      ["POST /comments", "GET /comments/mine", `PATCH /comments/${COMMENT}`, `DELETE /comments/${COMMENT}`],
+    );
+    assert.equal(sent[0]?.body, JSON.stringify({ branchId: BRANCH, dishId: DISH, text: "Muy rico", clientId }));
+    assert.ok(sent.every((request) => request.headers["x-device-id"] === DEVICE));
   });
 });

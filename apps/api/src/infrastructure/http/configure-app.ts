@@ -60,6 +60,8 @@ export function configureApp(
       ),
     credentials: true,
     maxAge: CORS_MAX_AGE_SECONDS,
+    // The PWA reads how long to wait after a 429 (ADR-0039: resend after 60 s).
+    exposedHeaders: ['Retry-After'],
   });
   app.useGlobalGuards(new AdminOriginGuard(config));
   app.useGlobalPipes(createValidationPipe());

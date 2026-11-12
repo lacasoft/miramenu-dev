@@ -8,6 +8,7 @@ import {
 } from "@miramenu/diner-core";
 import { useMemo, useState } from "react";
 import { StatusScreen } from "../app/StatusScreen";
+import { CommentsSheet } from "./CommentsSheet";
 import { DishDetail } from "./DishDetail";
 import { FeedView } from "./FeedView";
 import { GridView } from "./GridView";
@@ -29,7 +30,7 @@ export function MenuScreen({
   menu: PublishedMenu;
   feedTimings: FeedTimings;
 }) {
-  const { location, go, closeDetail } = useMenuLocation();
+  const { location, go, closeLayer } = useMenuLocation();
   const [profileOpen, setProfileOpen] = useState(false);
   const categoryId = effectiveCategoryId(menu, location.categoryId);
   const dishes = useMemo(
@@ -51,9 +52,9 @@ export function MenuScreen({
         categories={menu.categories}
         categoryId={categoryId}
         view={location.view}
-        onViewChange={(view) => move({ view, detail: false })}
+        onViewChange={(view) => move({ view, detail: false, comments: false })}
         onCategoryChange={(id) =>
-          move({ categoryId: id, dishId: location.dishId, detail: false })
+          move({ categoryId: id, dishId: location.dishId, detail: false, comments: false })
         }
         onOpenProfile={() => setProfileOpen(true)}
       />
@@ -61,10 +62,11 @@ export function MenuScreen({
         <FeedView
           dishes={dishes}
           activeId={active.dish.id}
-          suspended={location.detail || profileOpen}
+          suspended={location.detail || location.comments || profileOpen}
           timings={feedTimings}
           onActiveChange={(dishId) => move({ dishId })}
           onOpenDetail={(dishId) => move({ dishId, detail: true })}
+          onOpenComments={(dishId) => move({ dishId, comments: true })}
         />
       ) : (
         <GridView
@@ -75,7 +77,20 @@ export function MenuScreen({
           onOpenDetail={() => move({ detail: true })}
         />
       )}
-      {location.detail && <DishDetail entry={active} onClose={closeDetail} />}
+      {location.detail && (
+        <DishDetail
+          entry={active}
+          onClose={() => closeLayer("detail")}
+          onOpenComments={() => move({ comments: true })}
+        />
+      )}
+      {location.comments && (
+        <CommentsSheet
+          entry={active}
+          branchId={menu.branchId}
+          onClose={() => closeLayer("comments")}
+        />
+      )}
       {profileOpen && (
         <ProfileSheet
           profile={menu.profile}

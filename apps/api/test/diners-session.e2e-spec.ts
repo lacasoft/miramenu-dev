@@ -10,10 +10,12 @@ import {
   DEVICE_ID_HEADER,
   dinerSessionSchema,
   errorResponseSchema,
+  privacyNoticeSchema,
 } from '@miramenu/contracts';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import type { DataSource } from 'typeorm';
+import { parseEnvironment } from '../src/infrastructure/config/environment';
 import {
   CurrentDiner,
   DinerDirectory,
@@ -50,6 +52,19 @@ describe('Diner sessions and the contracts of Diners (e2e)', () => {
 
   afterAll(async () => {
     await app.close();
+  });
+
+  it('publishes the privacy notice in force, the one registration accepts', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/privacy-notice')
+      .expect(200);
+
+    const config = parseEnvironment(process.env).dinerRegistration;
+    expect(privacyNoticeSchema.parse(response.body)).toEqual({
+      version: config.privacyNoticeVersion,
+      url: config.privacyNoticeUrl,
+    });
+    expect(response.headers['cache-control']).toBe('public, max-age=300');
   });
 
   it('tells a registered diner who they are, and signs them out', async () => {

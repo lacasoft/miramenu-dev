@@ -16,5 +16,9 @@ export const fetchTransport: Transport = async ({
     body,
     credentials: "include",
   });
-  return { status: response.status, text: () => response.text() };
+  return {
+    status: response.status,
+    header: (name) => response.headers.get(name),
+    text: () => response.text(),
+  };
 };

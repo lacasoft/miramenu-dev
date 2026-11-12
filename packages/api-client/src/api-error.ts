@@ -12,6 +12,8 @@ export type ApiFailure =
       code: string;
       message: string;
       requestId: string;
+      /** From Retry-After on a 429 or 503: how long to wait before trying again. */
+      retryAfterSeconds?: number;
     }
   | { kind: "network" }
   | { kind: "unexpected"; status: number };
@@ -32,8 +34,18 @@ export class ApiError extends Error {
   }
 }
 
+/** Retry-After in whole seconds; an HTTP date or anything else is ignored. */
+function secondsOf(retryAfter: string | null): number | undefined {
+  if (retryAfter === null || !/^\d+$/.test(retryAfter.trim())) return undefined;
+  return Number(retryAfter.trim());
+}
+
 /** The failure of an answered request: its envelope when it has one, unexpected if not. */
-export function failureOf(status: number, body: string): ApiFailure {
+export function failureOf(
+  status: number,
+  body: string,
+  retryAfter: string | null = null,
+): ApiFailure {
   let parsed: unknown;
   try {
     parsed = JSON.parse(body);
@@ -41,10 +53,18 @@ export function failureOf(status: number, body: string): ApiFailure {
     return { kind: "unexpected", status };
   }
   const envelope = errorResponseSchema.safeParse(parsed);
-  return envelope.success
+  if (!envelope.success) return { kind: "unexpected", status };
+  const retryAfterSeconds = secondsOf(retryAfter);
+  return retryAfterSeconds === undefined
     ? { kind: "http", status, ...envelope.data }
-    : { kind: "unexpected", status };
+    : { kind: "http", status, ...envelope.data, retryAfterSeconds };
 }
+
+/** The API's own error code, when it answered with its envelope. */
+export const errorCodeOf = (error: unknown): string | undefined =>
+  error instanceof ApiError && error.failure.kind === "http"
+    ? error.failure.code
+    : undefined;
 
 export const isNotFound = (error: unknown): boolean =>
   error instanceof ApiError &&

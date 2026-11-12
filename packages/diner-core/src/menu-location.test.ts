@@ -23,7 +23,7 @@ describe("parseMenuLocation", () => {
       parseMenuLocation(
         `?view=feed&dish=${DISH}&category=${CATEGORY}&detail=1`,
       ),
-      { view: "feed", dishId: DISH, categoryId: CATEGORY, detail: true },
+      { view: "feed", dishId: DISH, categoryId: CATEGORY, detail: true, comments: false },
     );
   });
 
@@ -39,11 +39,14 @@ describe("parseMenuLocation", () => {
       dishId: DISH,
       categoryId: null,
       detail: false,
+      comments: false,
     });
   });
 
-  it("never opens a detail without a dish", () => {
+  it("never opens a detail or comments without a dish", () => {
     assert.equal(parseMenuLocation("?view=feed&detail=1").detail, false);
+    assert.equal(parseMenuLocation("?view=feed&comments=1").comments, false);
+    assert.equal(parseMenuLocation(`?view=feed&dish=${DISH}&comments=1`).comments, true);
   });
 });
 
@@ -54,9 +57,10 @@ describe("menuLocationSearch", () => {
 
   it("round-trips every location it writes", () => {
     const locations: MenuLocation[] = [
-      { view: "feed", dishId: DISH, categoryId: CATEGORY, detail: true },
-      { view: "grid3", dishId: null, categoryId: CATEGORY, detail: false },
-      { view: "grid2", dishId: DISH, categoryId: null, detail: false },
+      { view: "feed", dishId: DISH, categoryId: CATEGORY, detail: true, comments: false },
+      { view: "grid3", dishId: null, categoryId: CATEGORY, detail: false, comments: false },
+      { view: "grid2", dishId: DISH, categoryId: null, detail: false, comments: false },
+      { view: "feed", dishId: DISH, categoryId: null, detail: true, comments: true },
     ];
     for (const location of locations) {
       assert.deepEqual(
@@ -75,6 +79,7 @@ describe("isForwardStep", () => {
     assert.equal(isForwardStep(grid, feed), true);
     assert.equal(isForwardStep(feed, { ...feed, detail: true }), true);
     assert.equal(isForwardStep(grid, { ...grid, detail: true }), true);
+    assert.equal(isForwardStep(feed, { ...feed, comments: true }), true);
   });
 
   it("replaces the step for a density, a filter or the active dish", () => {

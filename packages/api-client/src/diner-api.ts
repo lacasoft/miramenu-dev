@@ -1,15 +1,28 @@
 import {
   branchInteractionsSchema,
+  codeRequestedSchema,
   DEVICE_ID_HEADER,
+  dinerSessionSchema,
   likeStateSchema,
   myLikesSchema,
+  ownCommentPageSchema,
+  ownCommentSchema,
+  privacyNoticeSchema,
+  publicCommentPageSchema,
   publishedMenuSchema,
   resolutionSchema,
   type BranchInteractions,
+  type CodeRequested,
+  type DinerSession,
   type LikeState,
   type MyLikes,
+  type OwnComment,
+  type Page,
+  type PrivacyNotice,
+  type PublicComment,
   type PublishedMenu,
   type Resolution,
+  type VerifyCodeRequest,
 } from "@miramenu/contracts";
 import { ApiError, failureOf } from "./api-error.ts";
 import type { HttpRequest, Transport } from "./transport.ts";
@@ -42,7 +55,8 @@ export function createDinerApi({
 }: DinerApiOptions) {
   const origin = baseUrl.replace(/\/+$/, "");
 
-  async function call<T>(request: HttpRequest, schema: Schema<T>): Promise<T> {
+  /** Sends a request and gives back its status and body, or throws its failure. */
+  async function exchange(request: HttpRequest) {
     let response;
     try {
       response = await transport(request);
@@ -56,7 +70,19 @@ export function createDinerApi({
       throw new ApiError({ kind: "network" });
     }
     if (response.status < 200 || response.status >= 300)
-      throw new ApiError(failureOf(response.status, body));
+      throw new ApiError(
+        failureOf(response.status, body, response.header("retry-after")),
+      );
+    return { response, body };
+  }
+
+  /** A call whose answer carries nothing to read (204). */
+  async function act(request: HttpRequest): Promise<void> {
+    await exchange(request);
+  }
+
+  async function call<T>(request: HttpRequest, schema: Schema<T>): Promise<T> {
+    const { response, body } = await exchange(request);
     let parsed: unknown;
     try {
       parsed = JSON.parse(body);
@@ -73,6 +99,14 @@ export function createDinerApi({
     call({ method: "GET", url: `${origin}${path}`, headers: {} }, schema);
 
   const asDevice = () => ({ [DEVICE_ID_HEADER]: deviceId() });
+  const json = (method: HttpRequest["method"], path: string, payload: unknown) => ({
+    method,
+    url: `${origin}${path}`,
+    headers: { "content-type": "application/json", ...asDevice() },
+    body: JSON.stringify(payload),
+  });
+  const withCursor = (path: string, cursor: string | undefined) =>
+    cursor === undefined ? path : `${path}?cursor=${encodeURIComponent(cursor)}`;
   const branchPath = (branchId: string) =>
     `/branches/${encodeURIComponent(branchId)}`;
 
@@ -127,6 +161,76 @@ export function createDinerApi({
         },
         myLikesSchema,
       );
+    },
+
+    /** The notice a registration must accept, and where to read it (ADR-0039). */
+    privacyNotice(): Promise<PrivacyNotice> {
+      return get("/privacy-notice", privacyNoticeSchema);
+    },
+
+    /** Sends a code to the phone; a 429 carries how long to wait (retryAfterSeconds). */
+    requestCode(phone: string): Promise<CodeRequested> {
+      return call(json("POST", "/registration/code", { phone }), codeRequestedSchema);
+    },
+
+    /** Checks the code and opens the diner's session; the API sets its cookie. */
+    verify(registration: VerifyCodeRequest): Promise<DinerSession> {
+      return call(json("POST", "/registration/verify", registration), dinerSessionSchema);
+    },
+
+    /** Who the diner is, or null without a session. */
+    async session(): Promise<DinerSession | null> {
+      try {
+        return await call(
+          { method: "GET", url: `${origin}/diner/session`, headers: asDevice() },
+          dinerSessionSchema,
+        );
+      } catch (error) {
+        if (error instanceof ApiError && error.failure.kind === "http" && error.failure.status === 401)
+          return null;
+        throw error;
+      }
+    },
+
+    signOut(): Promise<void> {
+      return act({ method: "DELETE", url: `${origin}/diner/session`, headers: asDevice() });
+    },
+
+    /** Approved comments of a dish, newest first, a page at a time; for everyone. */
+    comments(branchId: string, dishId: string, cursor?: string): Promise<Page<PublicComment>> {
+      return get(
+        withCursor(`${branchPath(branchId)}/dishes/${encodeURIComponent(dishId)}/comments`, cursor),
+        publicCommentPageSchema,
+      );
+    },
+
+    /**
+     * Posts a comment, born pending moderation. The client id makes a retry after a
+     * timeout return the same comment instead of a second one.
+     */
+    postComment(comment: { branchId: string; dishId: string; text: string; clientId: string }): Promise<OwnComment> {
+      return call(json("POST", "/comments", comment), ownCommentSchema);
+    },
+
+    /** The diner's own comments, whatever their state. */
+    myComments(cursor?: string): Promise<Page<OwnComment>> {
+      return call(
+        { method: "GET", url: `${origin}${withCursor("/comments/mine", cursor)}`, headers: asDevice() },
+        ownCommentPageSchema,
+      );
+    },
+
+    /** Edits a comment; it goes back to moderation. */
+    editComment(commentId: string, text: string): Promise<OwnComment> {
+      return call(json("PATCH", `/comments/${encodeURIComponent(commentId)}`, { text }), ownCommentSchema);
+    },
+
+    deleteComment(commentId: string): Promise<void> {
+      return act({
+        method: "DELETE",
+        url: `${origin}/comments/${encodeURIComponent(commentId)}`,
+        headers: asDevice(),
+      });
     },
   };
 }
