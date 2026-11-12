@@ -364,3 +364,44 @@ describe("registration, session and comments", () => {
     assert.ok(sent.every((request) => request.headers["x-device-id"] === DEVICE));
   });
 });
+
+describe("measurement", () => {
+  const api = (transport: Transport) =>
+    createDinerApi({ deviceId: () => DEVICE, baseUrl: "https://api.mirame.nu", transport });
+  const ENTRY = {
+    entryId: "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d",
+    branchId: BRANCH,
+    dishId: DISH,
+    enteredAt: "2026-11-12T18:00:00.000Z",
+    exposureMs: 1500,
+    validView: true,
+    exit: "manual" as const,
+  };
+
+  it("sends a batch as text/plain JSON with the device in the body, so no preflight", async () => {
+    const receipt = { accepted: [ENTRY.entryId], rejected: [] };
+    const { sent, transport } = fakeTransport(() => reply(202, receipt));
+
+    assert.deepEqual(await api(transport).sendFeedEntries([ENTRY]), receipt);
+    assert.deepEqual(sent[0], {
+      method: "POST",
+      url: "https://api.mirame.nu/feed-entries/batch",
+      headers: { "content-type": "text/plain;charset=UTF-8" },
+      body: JSON.stringify({ deviceId: DEVICE, entries: [ENTRY] }),
+    });
+  });
+
+  it("gives sendBeacon the same URL and body", () => {
+    const { transport } = fakeTransport(() => reply(202, {}));
+    assert.deepEqual(api(transport).feedEntriesBeacon([ENTRY]), {
+      url: "https://api.mirame.nu/feed-entries/batch",
+      body: JSON.stringify({ deviceId: DEVICE, entries: [ENTRY] }),
+    });
+  });
+
+  it("reports a full queue as a temporary failure", async () => {
+    const { transport } = fakeTransport(() => reply(503, envelope("MEASUREMENT_QUEUE_FULL")));
+    const error = await failureOf(api(transport).sendFeedEntries([ENTRY]));
+    assert.equal(isTemporary(error), true);
+  });
+});
