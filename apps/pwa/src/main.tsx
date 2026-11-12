@@ -1,7 +1,7 @@
 import "@miramenu/tokens/tokens.css";
 import "./styles/global.css";
 import { createDinerApi } from "@miramenu/api-client";
-import { siteAddressOf } from "@miramenu/diner-core";
+import { deviceIdOf, siteAddressOf } from "@miramenu/diner-core";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -11,11 +11,14 @@ import { createQueryClient } from "./app/query-client";
 import { parsePwaConfig } from "./config";
 import { t } from "./i18n";
 import { fetchTransport } from "./platform/fetch-transport";
+import { localKeyValueStore } from "./platform/local-storage";
 
 const config = parsePwaConfig(import.meta.env);
+const deviceId = deviceIdOf(localKeyValueStore(), () => crypto.randomUUID());
 const api = createDinerApi({
   baseUrl: config.apiUrl,
   transport: fetchTransport,
+  deviceId: () => deviceId,
 });
 const address = siteAddressOf(window.location, config.siteHostname);
 

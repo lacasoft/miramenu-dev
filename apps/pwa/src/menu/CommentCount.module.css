@@ -1,0 +1,33 @@
+.count {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  margin: 0;
+  font-size: var(--text-label);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--text-label-line-height);
+}
+
+.count[data-variant="rail"] {
+  display: inline-grid;
+  justify-items: center;
+  gap: var(--space-4);
+  text-shadow: 0 1px 3px var(--color-background);
+}
+
+.bubble {
+  display: grid;
+  place-items: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border-radius: var(--radius-pill);
+}
+
+.count[data-variant="inline"] .bubble {
+  width: var(--space-32);
+  height: var(--space-32);
+  border: 0;
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}

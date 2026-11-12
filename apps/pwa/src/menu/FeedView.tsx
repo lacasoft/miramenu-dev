@@ -25,6 +25,8 @@ import { MediaImage } from "../ui/MediaImage";
 import { FeedControls, StillProgress } from "./FeedControls";
 import { FeedVideo } from "./FeedVideo";
 import styles from "./FeedView.module.css";
+import { CommentCount } from "./CommentCount";
+import { LikeButton } from "./LikeButton";
 import { priceLabel } from "./price";
 
 /** A card is the active one once 70% of it is on screen (the demo's valid-view share). */
@@ -345,6 +347,10 @@ function FeedScene({
         className={styles.info}
         data-with-controls={withControls || undefined}
       >
+        <div className={styles.rail}>
+          <LikeButton dishId={dish.id} dishName={dish.name} label="below" />
+          <CommentCount dishId={dish.id} variant="rail" />
+        </div>
         <h2 className={styles.name}>{dish.name}</h2>
         {dish.description && (
           <p className={styles.description}>{dish.description}</p>

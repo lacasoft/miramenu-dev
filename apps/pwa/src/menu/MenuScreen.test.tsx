@@ -1,4 +1,6 @@
+import { ApiError, type DinerApi } from "@miramenu/api-client";
 import type { MenuDish, PublishedMenu } from "@miramenu/contracts";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
   cleanup,
@@ -9,6 +11,7 @@ import {
   within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DinerApiContext } from "../app/api-context";
 import { t } from "../i18n";
 import { revealInViewport } from "../test/setup";
 import { MenuScreen } from "./MenuScreen";
@@ -71,6 +74,65 @@ const MENU: PublishedMenu = {
 
 const TIMINGS = { stillMs: 5000, holdMs: 10_000 };
 
+interface FakeLikes {
+  liked?: string[];
+  comments?: Record<string, number>;
+  failLikes?: boolean;
+}
+
+/** Holds the API's answers to likes until the test lets them go. */
+function gate() {
+  let open = () => {};
+  const opened = new Promise<void>((resolve) => {
+    open = resolve;
+  });
+  return { opened, open: () => open() };
+}
+
+/** The calls the menu makes for likes and counts, against an in-memory branch. */
+function fakeApi({
+  liked = [],
+  comments = {},
+  failLikes = false,
+  answer = Promise.resolve(),
+}: FakeLikes & { answer?: Promise<void> } = {}) {
+  const likes = new Set(liked);
+  const calls: { dishId: string; active: boolean }[] = [];
+  const api: Partial<DinerApi> = {
+    myLikes: async () => ({ dishIds: [...likes] }),
+    interactions: async () => ({
+      dishes: Object.entries(comments).map(([dishId, count]) => ({
+        dishId,
+        likes: 0,
+        comments: count,
+      })),
+    }),
+    like: async (_branchId, dishId, active) => {
+      calls.push({ dishId, active });
+      await answer;
+      if (failLikes)
+        throw new ApiError({ kind: "http", status: 503, code: "SERVICE_UNAVAILABLE", message: "down", requestId: "r" });
+      if (active) likes.add(dishId);
+      else likes.delete(dishId);
+      return { active, likes: likes.size };
+    },
+  };
+  return { api: api as DinerApi, calls };
+}
+
+function renderMenu(api: DinerApi = fakeApi().api) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={client}>
+      <DinerApiContext value={api}>
+        <MenuScreen menu={MENU} feedTimings={TIMINGS} />
+      </DinerApiContext>
+    </QueryClientProvider>,
+  );
+}
+
 const cell = (name: string) =>
   screen.getByRole("button", { name: t("menu.openDish", { name }) });
 const query = () => new URLSearchParams(window.location.search);
@@ -82,7 +144,7 @@ afterEach(cleanup);
 
 describe("the menu's grids", () => {
   it("opens on two columns, with each dish's name and the first one active", () => {
-    render(<MenuScreen menu={MENU} feedTimings={TIMINGS} />);
+    renderMenu();
 
     expect(
       screen.getByRole("heading", { level: 1, name: "La Fonda" }),
@@ -110,7 +172,7 @@ describe("the menu's grids", () => {
   });
 
   it("drops the names in three columns, keeping the active dish and the path", () => {
-    render(<MenuScreen menu={MENU} feedTimings={TIMINGS} />);
+    renderMenu();
     fireEvent.click(
       screen.getByRole("button", { name: t("menu.density.grid3") }),
     );
@@ -123,7 +185,7 @@ describe("the menu's grids", () => {
   });
 
   it("filters by category, and the filter travels in the URL", () => {
-    render(<MenuScreen menu={MENU} feedTimings={TIMINGS} />);
+    renderMenu();
     fireEvent.click(screen.getByRole("button", { name: "Bebidas" }));
 
     expect(query().get("category")).toBe(id(200));
@@ -142,7 +204,7 @@ describe("the menu's grids", () => {
 
   it("says when a dish is unavailable instead of its price", () => {
     window.history.replaceState(null, "", `/centro?dish=${GRINGA.id}`);
-    render(<MenuScreen menu={MENU} feedTimings={TIMINGS} />);
+    renderMenu();
 
     expect(cell("Gringa").getAttribute("aria-current")).toBe("true");
     expect(screen.getByText(t("menu.dishUnavailable"))).toBeTruthy();
@@ -151,7 +213,7 @@ describe("the menu's grids", () => {
 
 describe("the feed", () => {
   it("opens on the touched dish as its own step, and back returns to the grid", async () => {
-    render(<MenuScreen menu={MENU} feedTimings={TIMINGS} />);
+    renderMenu();
     fireEvent.click(cell("Suadero"));
 
     expect(query().get("view")).toBe("feed");
@@ -172,7 +234,7 @@ describe("the feed", () => {
       "",
       `/centro?view=feed&dish=${PASTOR.id}`,
     );
-    const { container } = render(<MenuScreen menu={MENU} feedTimings={TIMINGS} />);
+    const { container } = renderMenu();
 
     const horchata = container.querySelector(`[data-dish-id="${HORCHATA.id}"]`);
     if (horchata === null) throw new Error("no Horchata scene");
@@ -188,7 +250,7 @@ describe("the feed", () => {
       "",
       `/centro?view=feed&dish=${SUADERO.id}`,
     );
-    const { container } = render(<MenuScreen menu={MENU} feedTimings={TIMINGS} />);
+    const { container } = renderMenu();
 
     const videos = container.querySelectorAll("video");
     expect(videos).toHaveLength(1);
@@ -208,7 +270,7 @@ describe("the feed", () => {
       `/centro?view=feed&dish=${SUADERO.id}`,
     );
     const pause = vi.spyOn(HTMLMediaElement.prototype, "pause");
-    render(<MenuScreen menu={MENU} feedTimings={TIMINGS} />);
+    renderMenu();
     expect(pause).not.toHaveBeenCalled();
 
     const feed = screen.getByRole("region", { name: t("menu.dishes") });
@@ -224,7 +286,7 @@ describe("the feed", () => {
 
 describe("the detail", () => {
   it("opens over the dish with its category, and Escape returns the focus to its opener", async () => {
-    render(<MenuScreen menu={MENU} feedTimings={TIMINGS} />);
+    renderMenu();
     const opener = screen.getByRole("button", {
       name: t("dish.seeDetailOf", { name: "Pastor" }),
     });
@@ -249,7 +311,7 @@ describe("the detail", () => {
 
   it("closes in place when a shared link opened it, without leaving the site", () => {
     window.history.replaceState(null, "", `/centro?dish=${PASTOR.id}&detail=1`);
-    render(<MenuScreen menu={MENU} feedTimings={TIMINGS} />);
+    renderMenu();
 
     fireEvent.click(screen.getByRole("button", { name: t("dish.close") }));
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -260,7 +322,7 @@ describe("the detail", () => {
 
 describe("the profile", () => {
   it("shows the restaurant's networks, opening outside the menu", () => {
-    render(<MenuScreen menu={MENU} feedTimings={TIMINGS} />);
+    renderMenu();
     fireEvent.click(screen.getByRole("button", { name: "La Fonda" }));
 
     const profile = screen.getByRole("dialog", { name: "La Fonda" });
@@ -282,7 +344,7 @@ describe("the profile", () => {
 describe("the feed moving on by itself", () => {
   const openFeedOn = (dishId: string) => {
     window.history.replaceState(null, "", `/centro?view=feed&dish=${dishId}`);
-    return render(<MenuScreen menu={MENU} feedTimings={TIMINGS} />);
+    return renderMenu();
   };
   const wait = (ms: number) => act(() => vi.advanceTimersByTime(ms));
   const activeDish = () => query().get("dish");
@@ -374,5 +436,112 @@ describe("the feed moving on by itself", () => {
     expect(activeDish()).toBe(GRINGA.id);
     wait(1);
     expect(activeDish()).toBe(HORCHATA.id);
+  });
+});
+
+describe("likes", () => {
+  const heart = (name: string) =>
+    screen.getAllByRole("button", { name: t("like.action", { name }) })[0] as HTMLElement;
+
+  it("likes a dish before the API answers, and keeps it once it agrees", async () => {
+    const answer = gate();
+    const { api, calls } = fakeApi({ answer: answer.opened });
+    renderMenu(api);
+
+    fireEvent.click(heart("Pastor"));
+    await waitFor(() => expect(heart("Pastor").getAttribute("aria-pressed")).toBe("true"));
+    expect(calls).toEqual([{ dishId: PASTOR.id, active: true }]);
+    answer.open();
+    await waitFor(() => expect(screen.queryByText(t("like.failed"))).toBeNull());
+    expect(heart("Pastor").getAttribute("aria-pressed")).toBe("true");
+
+    fireEvent.click(heart("Pastor"));
+    await waitFor(() => expect(calls).toHaveLength(2));
+    expect(calls[1]).toEqual({ dishId: PASTOR.id, active: false });
+    expect(heart("Pastor").getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("undoes a like it could not save, and says so", async () => {
+    const answer = gate();
+    renderMenu(fakeApi({ failLikes: true, answer: answer.opened }).api);
+
+    fireEvent.click(heart("Suadero"));
+    await waitFor(() => expect(heart("Suadero").getAttribute("aria-pressed")).toBe("true"));
+    answer.open();
+    expect(await screen.findByText(t("like.failed"))).toBeTruthy();
+    expect(heart("Suadero").getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("undoes a failed like even without network to ask the API again", async () => {
+    const answer = gate();
+    const { api } = fakeApi({ failLikes: true, answer: answer.opened });
+    let online = true;
+    const offlineLater: DinerApi = {
+      ...api,
+      myLikes: async (branchId) => {
+        if (!online) throw new ApiError({ kind: "network" });
+        return api.myLikes(branchId);
+      },
+    };
+    renderMenu(offlineLater);
+    await waitFor(() => expect(heart("Pastor").getAttribute("aria-pressed")).toBe("false"));
+
+    online = false;
+    fireEvent.click(heart("Pastor"));
+    await waitFor(() => expect(heart("Pastor").getAttribute("aria-pressed")).toBe("true"));
+    answer.open();
+    expect(await screen.findByText(t("like.failed"))).toBeTruthy();
+    expect(heart("Pastor").getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("still shows the earlier likes when a heart is touched before they load", async () => {
+    const answer = gate();
+    const { api } = fakeApi({ liked: [SUADERO.id] });
+    let firstRead = true;
+    const slowFirstRead: DinerApi = {
+      ...api,
+      myLikes: async (branchId) => {
+        if (firstRead) {
+          firstRead = false;
+          await answer.opened;
+        }
+        return api.myLikes(branchId);
+      },
+    };
+    renderMenu(slowFirstRead);
+
+    fireEvent.click(heart("Pastor"));
+    await waitFor(() => expect(heart("Suadero").getAttribute("aria-pressed")).toBe("true"));
+    expect(heart("Pastor").getAttribute("aria-pressed")).toBe("true");
+    answer.open();
+  });
+
+  it("shows the likes the diner gave before", async () => {
+    renderMenu(fakeApi({ liked: [SUADERO.id] }).api);
+
+    await waitFor(() => expect(heart("Suadero").getAttribute("aria-pressed")).toBe("true"));
+    expect(heart("Pastor").getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("puts the heart in every cell, the contextual bar, the feed and the detail", () => {
+    window.history.replaceState(null, "", `/centro?view=feed&dish=${PASTOR.id}&detail=1`);
+    renderMenu();
+
+    const detail = screen.getByRole("dialog", { name: "Pastor" });
+    expect(within(detail).getByRole("button", { name: t("like.action", { name: "Pastor" }) })).toBeTruthy();
+    const feed = screen.getByRole("region", { name: t("menu.dishes") });
+    // One scene per dish, plus the copy of the first one after the last.
+    expect(within(feed).getAllByRole("button", { name: /^Me gusta en /, hidden: true })).toHaveLength(5);
+  });
+
+  it("counts the approved comments in the feed and the detail", async () => {
+    window.history.replaceState(null, "", `/centro?view=feed&dish=${SUADERO.id}&detail=1`);
+    renderMenu(fakeApi({ comments: { [SUADERO.id]: 3, [PASTOR.id]: 1 } }).api);
+
+    const detail = screen.getByRole("dialog", { name: "Suadero" });
+    expect(await within(detail).findByText("3 comentarios")).toBeTruthy();
+    const feed = screen.getByRole("region", { name: t("menu.dishes") });
+    expect(within(feed).getAllByText("1 comentario").length).toBeGreaterThan(0);
+    expect(within(feed).getAllByText("0 comentarios").length).toBeGreaterThan(0);
   });
 });

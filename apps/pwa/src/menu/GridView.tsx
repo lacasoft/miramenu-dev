@@ -5,6 +5,7 @@ import { t } from "../i18n";
 import { Icon } from "../ui/Icon";
 import { MediaImage } from "../ui/MediaImage";
 import styles from "./GridView.module.css";
+import { LikeButton } from "./LikeButton";
 import { priceLabel } from "./price";
 
 interface GridViewProps {
@@ -18,7 +19,8 @@ interface GridViewProps {
 /**
  * Two or three columns of covers, read by rows in the menu's order. Touching a dish opens
  * the feed on it; the active dish keeps its champagne border and the contextual bar, with
- * "Ver detalle", below (decided 2026-11-12).
+ * "Ver detalle", below (decided 2026-11-12). Each cell carries its heart, outside the
+ * cell's own button so the two never nest.
  */
 export function GridView({
   dishes,
@@ -74,6 +76,12 @@ export function GridView({
                 </span>
               )}
             </button>
+            <LikeButton
+              dishId={dish.id}
+              dishName={dish.name}
+              compact
+              className={styles.cellLike}
+            />
           </li>
         ))}
       </ul>
@@ -102,6 +110,7 @@ function ContextBar({
           <p className={styles.barName}>{dish.name}</p>
           <p className={styles.barPrice}>{priceLabel(dish)}</p>
         </div>
+        <LikeButton dishId={dish.id} dishName={dish.name} />
         <button
           type="button"
           className={styles.detail}

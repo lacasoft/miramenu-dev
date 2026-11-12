@@ -1,0 +1,19 @@
+/* A short notice over the menu: what failed and what the diner can do (design-system §14). */
+.notice {
+  position: fixed;
+  inset: calc(var(--space-12) + env(safe-area-inset-top)) var(--space-12) auto;
+  z-index: 30;
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-module);
+  background-color: var(--color-surface);
+  color: var(--color-foreground);
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+  text-align: center;
+}
+
+.notice:not([data-shown]) {
+  display: none;
+}

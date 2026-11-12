@@ -13,6 +13,9 @@ import { FeedView } from "./FeedView";
 import { GridView } from "./GridView";
 import { MenuHeader } from "./MenuHeader";
 import { ProfileSheet } from "./ProfileSheet";
+import { t } from "../i18n";
+import styles from "./MenuScreen.module.css";
+import { LikesContext, useLikes } from "./use-likes";
 import { useMenuLocation } from "./use-menu-location";
 
 /**
@@ -34,6 +37,7 @@ export function MenuScreen({
     [menu, categoryId],
   );
   const active = activeDishOf(dishes, location.dishId);
+  const likes = useLikes(menu.branchId);
 
   if (active === undefined) return <StatusScreen kind="empty" />;
 
@@ -41,7 +45,7 @@ export function MenuScreen({
     go({ ...location, categoryId, dishId: active.dish.id, ...change });
 
   return (
-    <>
+    <LikesContext value={likes}>
       <MenuHeader
         profile={menu.profile}
         categories={menu.categories}
@@ -78,6 +82,9 @@ export function MenuScreen({
           onClose={() => setProfileOpen(false)}
         />
       )}
-    </>
+      <p role="status" className={styles.notice} data-shown={likes.failed || undefined}>
+        {likes.failed ? t("like.failed") : ""}
+      </p>
+    </LikesContext>
   );
 }

@@ -1,0 +1,61 @@
+.like {
+  display: inline-grid;
+  justify-items: center;
+  align-content: center;
+  gap: var(--space-4);
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-foreground);
+  font: inherit;
+  cursor: pointer;
+}
+
+.circle {
+  display: grid;
+  place-items: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border-radius: var(--radius-pill);
+  transition:
+    color var(--duration-brief) var(--ease-standard),
+    border-color var(--duration-brief) var(--ease-standard);
+}
+
+.like[data-compact] .circle {
+  width: var(--space-32);
+  height: var(--space-32);
+}
+
+.circle[data-liked] {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.like[data-label="beside"] {
+  grid-auto-flow: column;
+  gap: var(--space-8);
+}
+
+.like[data-label="beside"] .circle {
+  width: var(--space-32);
+  height: var(--space-32);
+  border: 0;
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.label {
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+  text-shadow: 0 1px 3px var(--color-background);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .circle {
+    transition: none;
+  }
+}

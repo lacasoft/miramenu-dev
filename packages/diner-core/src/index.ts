@@ -36,3 +36,8 @@ export {
   type FeedTransition,
   type SceneKind,
 } from "./feed-playback.ts";
+export {
+  DEVICE_ID_KEY,
+  deviceIdOf,
+  type KeyValueStore,
+} from "./device-identity.ts";

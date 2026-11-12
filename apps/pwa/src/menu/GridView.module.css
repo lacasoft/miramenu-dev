@@ -21,6 +21,7 @@
 }
 
 .cell {
+  position: relative;
   aspect-ratio: 1;
   scroll-margin: calc(9.5rem + env(safe-area-inset-top)) 0
     calc(7rem + env(safe-area-inset-bottom));
@@ -149,4 +150,10 @@
   font-size: var(--text-label);
   line-height: var(--text-label-line-height);
   cursor: pointer;
+}
+
+.cellLike {
+  position: absolute;
+  top: 0;
+  right: 0;
 }
