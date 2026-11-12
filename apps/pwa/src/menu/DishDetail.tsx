@@ -5,6 +5,8 @@ import { Icon } from "../ui/Icon";
 import { MediaImage } from "../ui/MediaImage";
 import { useModalDialog } from "../ui/use-modal-dialog";
 import styles from "./DishDetail.module.css";
+import { CommentCount } from "./CommentCount";
+import { LikeButton } from "./LikeButton";
 import { priceLabel } from "./price";
 
 /**
@@ -53,6 +55,9 @@ export function DishDetail({
       </header>
       <div className={`glass-smoke ${styles.bar}`}>
         <p className={styles.price}>{priceLabel(dish)}</p>
+        <span className={styles.divider} aria-hidden="true" />
+        <LikeButton dishId={dish.id} dishName={dish.name} label="beside" />
+        <CommentCount dishId={dish.id} variant="inline" />
       </div>
     </dialog>
   );

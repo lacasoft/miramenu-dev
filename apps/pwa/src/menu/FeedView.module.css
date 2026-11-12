@@ -56,6 +56,15 @@
   bottom: calc(var(--space-64) + var(--space-16) + env(safe-area-inset-bottom));
 }
 
+/* The social rail, on the right above the dish's name (approved feed). */
+.rail {
+  display: grid;
+  justify-self: end;
+  justify-items: center;
+  gap: var(--space-16);
+  margin-bottom: var(--space-8);
+}
+
 .name {
   margin: 0;
   font-size: var(--text-display);
