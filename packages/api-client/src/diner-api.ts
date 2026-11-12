@@ -100,6 +100,12 @@ export function createDinerApi({
 
   const get = <T>(path: string, schema: Schema<T>) =>
     call({ method: "GET", url: `${origin}${path}`, headers: {} }, schema);
+  /** A read that the last good answer may stand in for, offline (see HttpRequest). */
+  const getKept = <T>(path: string, schema: Schema<T>) =>
+    call(
+      { method: "GET", url: `${origin}${path}`, headers: {}, allowsLastCopy: true },
+      schema,
+    );
 
   const asDevice = () => ({ [DEVICE_ID_HEADER]: deviceId() });
   const json = (method: HttpRequest["method"], path: string, payload: unknown) => ({
@@ -127,12 +133,12 @@ export function createDinerApi({
       const query = [`subdomain=${encodeURIComponent(address.subdomain)}`];
       if (address.slug !== undefined)
         query.push(`slug=${encodeURIComponent(address.slug)}`);
-      return get(`/resolve?${query.join("&")}`, resolutionSchema);
+      return getKept(`/resolve?${query.join("&")}`, resolutionSchema);
     },
 
     /** The branch's latest published menu (ADR-0003). */
     menu(branchId: string): Promise<PublishedMenu> {
-      return get(
+      return getKept(
         `/branches/${encodeURIComponent(branchId)}/menu`,
         publishedMenuSchema,
       );

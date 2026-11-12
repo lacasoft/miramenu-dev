@@ -18,13 +18,16 @@ import { t } from "./i18n";
 import { sendBeacon } from "./platform/beacon";
 import { fetchTransport } from "./platform/fetch-transport";
 import { indexedDbEntryStore } from "./platform/indexeddb-entry-store";
+import { withLastCopy } from "./platform/last-copy-transport";
+import { registerServiceWorker } from "./platform/service-worker";
 import { localKeyValueStore } from "./platform/local-storage";
 
 const config = parsePwaConfig(import.meta.env);
 const deviceId = deviceIdOf(localKeyValueStore(), () => crypto.randomUUID());
 const api = createDinerApi({
   baseUrl: config.apiUrl,
-  transport: fetchTransport,
+  // Offline, the branch and its menu come from their last copy (ADR-0046).
+  transport: withLastCopy(fetchTransport),
   deviceId: () => deviceId,
 });
 const outbox = createEntryOutbox({
@@ -51,3 +54,5 @@ createRoot(root).render(
     </QueryClientProvider>
   </StrictMode>,
 );
+
+registerServiceWorker(import.meta.env.PROD);

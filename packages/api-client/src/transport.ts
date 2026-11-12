@@ -7,6 +7,12 @@ export interface HttpRequest {
   url: string;
   headers: Readonly<Record<string, string>>;
   body?: string;
+  /**
+   * The last good answer to this request may stand in for it when the network fails or
+   * the server is down: the branch's resolution and its published menu, so the PWA opens
+   * offline with what it showed last. How the copy is kept is the transport's business.
+   */
+  allowsLastCopy?: true;
 }
 
 export interface HttpResponse {

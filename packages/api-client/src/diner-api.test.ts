@@ -93,6 +93,8 @@ describe("createDinerApi", () => {
         method: "GET",
         url: "https://api.mirame.nu/resolve?subdomain=lafonda&slug=centro",
         headers: {},
+        // Offline, the PWA opens with the last branch it resolved here.
+        allowsLastCopy: true,
       },
     ]);
   });
@@ -120,6 +122,7 @@ describe("createDinerApi", () => {
 
     assert.deepEqual(await api.menu(BRANCH), MENU);
     assert.equal(sent[0]?.url, `https://api.mirame.nu/branches/${BRANCH}/menu`);
+    assert.equal(sent[0]?.allowsLastCopy, true);
   });
 
   it("turns the API's error envelope into a typed failure", async () => {
