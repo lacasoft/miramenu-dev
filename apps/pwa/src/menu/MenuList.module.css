@@ -1,0 +1,58 @@
+.screen {
+  display: grid;
+  gap: var(--space-32);
+  padding: var(--space-24) var(--mobile-margin) var(--space-48);
+}
+
+.restaurant {
+  margin: 0;
+  font-size: var(--text-screen-title);
+  line-height: var(--text-screen-title-line-height);
+}
+
+.category {
+  display: grid;
+  gap: var(--space-12);
+}
+
+.categoryName {
+  margin: 0;
+  font-size: var(--text-section);
+  line-height: var(--text-section-line-height);
+}
+
+.dishes {
+  display: grid;
+  gap: var(--space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dish {
+  display: flex;
+  gap: var(--space-16);
+  justify-content: space-between;
+  align-items: start;
+  padding: var(--space-16);
+  border-radius: var(--radius-module);
+  background-color: var(--color-surface);
+}
+
+.dishName {
+  margin: 0;
+  font-size: var(--text-card);
+  line-height: var(--text-card-line-height);
+}
+
+.description {
+  margin: var(--space-4) 0 0;
+  color: var(--color-muted-foreground);
+}
+
+.price {
+  margin: 0;
+  flex-shrink: 0;
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+}

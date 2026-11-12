@@ -1,0 +1,14 @@
+{
+  "name": "@miramenu/i18n",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Typed text catalogs and Intl formatting for the apps, without DOM or Node APIs (ADR-0043).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json",
+    "test": "node --test \"src/**/*.test.ts\""
+  }
+}
