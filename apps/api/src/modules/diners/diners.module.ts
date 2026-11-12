@@ -12,6 +12,7 @@ import { SendTracking } from './application/send-tracking';
 import { VerificationCodeStore } from './application/verification-code-store';
 import { DeliveryReportController } from './http/delivery-report.controller';
 import { DinerSessionController } from './http/diner-session.controller';
+import { PrivacyNoticeController } from './http/privacy-notice.controller';
 import { RegistrationController } from './http/registration.controller';
 
 /**
@@ -24,6 +25,7 @@ import { RegistrationController } from './http/registration.controller';
     RegistrationController,
     DinerSessionController,
     DeliveryReportController,
+    PrivacyNoticeController,
   ],
   providers: [
     VerificationCodeStore,

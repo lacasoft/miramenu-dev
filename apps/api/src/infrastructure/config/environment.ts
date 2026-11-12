@@ -119,6 +119,8 @@ const environmentSchema = z
     DINER_CODE_SECRET: secret,
     // The current privacy notice; a diner shown another version is asked to see this one.
     PRIVACY_NOTICE_VERSION: z.string().trim().min(1).max(40),
+    // Where diners read that notice; the PWA links to it from the registration form.
+    PRIVACY_NOTICE_URL: httpUrl,
     VERIFICATION_CODE_TTL_SECONDS: positiveInt.max(3600).default(600),
     VERIFICATION_CODE_MAX_ATTEMPTS: positiveInt.max(20).default(5),
     VERIFICATION_RESEND_SECONDS: positiveInt.max(3600).default(60),
@@ -236,6 +238,7 @@ export interface AppConfig {
   dinerRegistration: {
     codeSecret: string;
     privacyNoticeVersion: string;
+    privacyNoticeUrl: string;
     codeTtlSeconds: number;
     codeMaxAttempts: number;
     resendSeconds: number;
@@ -395,6 +398,7 @@ export function parseEnvironment(env: Environment): AppConfig {
     dinerRegistration: {
       codeSecret: parsed.DINER_CODE_SECRET,
       privacyNoticeVersion: parsed.PRIVACY_NOTICE_VERSION,
+      privacyNoticeUrl: parsed.PRIVACY_NOTICE_URL,
       codeTtlSeconds: parsed.VERIFICATION_CODE_TTL_SECONDS,
       codeMaxAttempts: parsed.VERIFICATION_CODE_MAX_ATTEMPTS,
       resendSeconds: parsed.VERIFICATION_RESEND_SECONDS,

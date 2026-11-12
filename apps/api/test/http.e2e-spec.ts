@@ -124,6 +124,8 @@ describe('HTTP contract (e2e)', () => {
       .set('Origin', PWA_ORIGIN);
     expect(read.headers['access-control-allow-origin']).toBe(PWA_ORIGIN);
     expect(read.headers['vary']).toMatch(/Origin/);
+    // The PWA must read Retry-After to count down after a 429.
+    expect(read.headers['access-control-expose-headers']).toBe('Retry-After');
   });
 
   it('refuses look-alikes of the public site', async () => {
