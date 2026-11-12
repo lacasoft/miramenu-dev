@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { adminMessages } from "./admin/es-MX.ts";
 import { createTranslator } from "./translator.ts";
 
 const t = createTranslator({
@@ -38,5 +39,16 @@ describe("createTranslator", () => {
     assert.equal(t("named"), "Ver detalle de {name}");
     // @ts-expect-error: a text without placeholders takes none
     assert.equal(t("plain", { name: "x" }), "Cargando el menú");
+  });
+});
+
+describe("the admin's catalog", () => {
+  const admin = createTranslator(adminMessages);
+
+  it("fills its placeholders, and its keys are checked like the diner's", () => {
+    assert.equal(admin("shell.greeting", { name: "Ana" }), "Hola, Ana");
+    assert.equal(admin("signIn.wait", { seconds: 42 }), "Demasiados intentos. Vuelve a intentar en 42 s.");
+    // @ts-expect-error: the diner's keys are not the admin's
+    assert.throws(() => admin("menu.loading"));
   });
 });

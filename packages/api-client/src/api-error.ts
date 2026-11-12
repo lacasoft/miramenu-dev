@@ -66,6 +66,12 @@ export const errorCodeOf = (error: unknown): string | undefined =>
     ? error.failure.code
     : undefined;
 
+/** No session, or it ended: the screen asks to sign in again. */
+export const isUnauthorized = (error: unknown): boolean =>
+  error instanceof ApiError &&
+  error.failure.kind === "http" &&
+  error.failure.status === 401;
+
 export const isNotFound = (error: unknown): boolean =>
   error instanceof ApiError &&
   error.failure.kind === "http" &&
