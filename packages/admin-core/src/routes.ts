@@ -10,6 +10,11 @@ export type AdminRoute =
   /** The token comes in the fragment, never in the path (ADR-0033). */
   | { screen: "invitation" }
   | { screen: "home" }
+  /** The superadmin creates a business with its first admin. */
+  | { screen: "newBusiness" }
+  | { screen: "business"; businessId: string }
+  | { screen: "team"; businessId: string }
+  | { screen: "branch"; branchId: string }
   | { screen: "notFound" };
 
 /** The session had ended, or an invitation was just accepted. */
@@ -22,6 +27,23 @@ const noticeOf = (value: string | undefined): SignInNotice | null =>
 export const SIGN_IN_PATH = "/login";
 /** The API's invitation emails link here (`ADMIN_APP_URL/invitation#token=…`). */
 export const INVITATION_PATH = "/invitation";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/** The app's pages behind the session, by the segments of their path. */
+function pageOf(segments: readonly string[]): AdminRoute {
+  const [first, second, third, ...rest] = segments;
+  if (rest.length > 0) return { screen: "notFound" };
+  if (first === "businesses" && second === "new" && third === undefined)
+    return { screen: "newBusiness" };
+  if (first === "businesses" && second !== undefined && UUID.test(second)) {
+    if (third === undefined) return { screen: "business", businessId: second };
+    if (third === "team") return { screen: "team", businessId: second };
+  }
+  if (first === "branches" && second !== undefined && UUID.test(second) && third === undefined)
+    return { screen: "branch", branchId: second };
+  return { screen: "notFound" };
+}
 
 const normalized = (pathname: string) =>
   pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
@@ -38,7 +60,7 @@ export function routeOf(location: { pathname: string; search: string }): AdminRo
   }
   if (path === INVITATION_PATH) return { screen: "invitation" };
   if (path === "/") return { screen: "home" };
-  return { screen: "notFound" };
+  return pageOf(path.slice(1).split("/"));
 }
 
 export function hrefOf(route: AdminRoute): string {
@@ -52,6 +74,14 @@ export function hrefOf(route: AdminRoute): string {
     }
     case "invitation":
       return INVITATION_PATH;
+    case "newBusiness":
+      return "/businesses/new";
+    case "business":
+      return `/businesses/${route.businessId}`;
+    case "team":
+      return `/businesses/${route.businessId}/team`;
+    case "branch":
+      return `/branches/${route.branchId}`;
     case "home":
     case "notFound":
       return "/";

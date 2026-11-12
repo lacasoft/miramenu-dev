@@ -161,3 +161,80 @@ describe("createAdminApi", () => {
     assert.equal(isUnauthorized(new Error("401")), false);
   });
 });
+
+describe("the admin's businesses, branches and team", () => {
+  const BUSINESS = {
+    id: "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+    name: "La Fonda",
+    country: "MX",
+    subdomain: "lafonda",
+    createdAt: "2026-11-12T18:00:00.000Z",
+  };
+  const BRANCH = {
+    id: "6f1c2e0a-8b3d-4c5e-9f7a-1b2c3d4e5f60",
+    businessId: BUSINESS.id,
+    name: "Centro",
+    slug: "centro",
+    subdomain: null,
+    url: "https://lafonda.mirame.nu/centro",
+    createdAt: "2026-11-12T18:00:00.000Z",
+  };
+  const USER = {
+    id: "9b8a7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d",
+    email: "rosa@lafonda.example",
+    name: "Rosa",
+    status: "invited",
+    roles: [{ businessId: BUSINESS.id, branchId: BRANCH.id, role: "branch_admin" }],
+  };
+  const page = <T>(item: T) => ({ items: [item], nextCursor: null });
+  const B = `https://api.mirame.nu/admin/businesses/${BUSINESS.id}`;
+  const R = `https://api.mirame.nu/admin/branches/${BRANCH.id}`;
+
+  const cases: [string, (api: ReturnType<typeof createAdminApi>) => Promise<unknown>, string, string, unknown, unknown][] = [
+    ["createBusiness", (api) => api.createBusiness({ name: "La Fonda", country: "MX", subdomain: "lafonda", admin: { email: "ana@lafonda.example", name: "Ana" } }), "POST", "https://api.mirame.nu/admin/businesses", { name: "La Fonda", country: "MX", subdomain: "lafonda", admin: { email: "ana@lafonda.example", name: "Ana" } }, { business: BUSINESS, admin: { id: USER.id, email: "ana@lafonda.example" }, invitation: { sent: false } }],
+    ["business", (api) => api.business(BUSINESS.id), "GET", B, undefined, BUSINESS],
+    ["updateBusiness", (api) => api.updateBusiness(BUSINESS.id, { subdomain: "fonda" }), "PATCH", B, { subdomain: "fonda" }, BUSINESS],
+    ["branches", (api) => api.branches(BUSINESS.id, "next_1"), "GET", `${B}/branches?cursor=next_1`, undefined, page(BRANCH)],
+    ["createBranch", (api) => api.createBranch(BUSINESS.id, { name: "Centro", slug: "centro" }), "POST", `${B}/branches`, { name: "Centro", slug: "centro" }, BRANCH],
+    ["branch", (api) => api.branch(BRANCH.id), "GET", R, undefined, BRANCH],
+    ["updateBranch", (api) => api.updateBranch(BRANCH.id, { subdomain: null }), "PATCH", R, { subdomain: null }, BRANCH],
+    ["branchQr", (api) => api.branchQr(BRANCH.id), "GET", `${R}/qr`, undefined, { code: "a2b3c4d", shortUrl: "https://mirame.nu/a2b3c4d" }],
+    ["team", (api) => api.team(BUSINESS.id), "GET", `${B}/users`, undefined, page(USER)],
+    ["inviteUser", (api) => api.inviteUser(BUSINESS.id, { email: USER.email, name: "Rosa", role: { role: "branch_admin", branchId: BRANCH.id } }), "POST", `${B}/users`, { email: USER.email, name: "Rosa", role: { role: "branch_admin", branchId: BRANCH.id } }, { user: USER, invitation: { sent: true } }],
+    ["setRoles", (api) => api.setRoles(BUSINESS.id, USER.id, [{ role: "business_admin" }]), "PUT", `${B}/users/${USER.id}/roles`, { roles: [{ role: "business_admin" }] }, USER],
+    ["resendInvitation", (api) => api.resendInvitation(BUSINESS.id, USER.id), "POST", `${B}/users/${USER.id}/invitation`, undefined, { sent: true }],
+  ];
+
+  for (const [name, run, method, url, body, answer] of cases) {
+    it(`${name}: ${method} with its body, its answer checked against the contract`, async () => {
+      const { sent, api } = fakeTransport(() => reply(200, answer));
+      assert.deepEqual(await run(api), answer);
+      assert.equal(sent[0]?.method, method);
+      assert.equal(sent[0]?.url, url);
+      assert.deepEqual(sent[0]?.body === undefined ? undefined : JSON.parse(sent[0].body), body);
+      if (body !== undefined) assert.deepEqual(sent[0]?.headers, { "content-type": "application/json" });
+
+      const broken = await failureOf(run(fakeTransport(() => reply(200, { unexpected: true })).api));
+      assert.deepEqual(broken.failure, { kind: "unexpected", status: 200 });
+    });
+  }
+
+  it("removes someone's roles with a DELETE whose answer has no body", async () => {
+    const { sent, api } = fakeTransport(() => reply(204));
+    await api.removeRoles(BUSINESS.id, USER.id);
+    assert.deepEqual(sent[0], { method: "DELETE", url: `${B}/users/${USER.id}/roles`, headers: {} });
+  });
+
+  it("encodes the ids it puts in a path", async () => {
+    const { sent, api } = fakeTransport(() => reply(404, envelope("NOT_FOUND")));
+    await failureOf(api.branch("../admin/session"));
+    assert.equal(sent[0]?.url, "https://api.mirame.nu/admin/branches/..%2Fadmin%2Fsession");
+  });
+
+  it("carries a taken subdomain or slug as the API's own failure", async () => {
+    const taken = await failureOf(
+      fakeTransport(() => reply(409, envelope("SLUG_TAKEN"))).api.createBranch(BUSINESS.id, { name: "Centro", slug: "centro" }),
+    );
+    assert.equal(taken.failure.kind === "http" && taken.failure.code, "SLUG_TAKEN");
+  });
+});
