@@ -16,8 +16,10 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DinerApiContext } from "../app/api-context";
+import { EntryOutboxContext } from "../app/entry-outbox-context";
 import { t } from "../i18n";
 import { MenuScreen } from "./MenuScreen";
+import { testOutbox } from "../test/entry-outbox";
 
 const id = (n: number) =>
   `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -134,10 +136,12 @@ function openSheet(api: ReturnType<typeof fakeApi>) {
   render(
     <QueryClientProvider client={client}>
       <DinerApiContext value={api as unknown as DinerApi}>
-        <MenuScreen
-          menu={MENU}
-          feedTimings={{ stillMs: 5000, holdMs: 10_000 }}
-        />
+        <EntryOutboxContext value={testOutbox().outbox}>
+          <MenuScreen
+            menu={MENU}
+            feedTimings={{ stillMs: 5000, holdMs: 10_000 }}
+          />
+        </EntryOutboxContext>
       </DinerApiContext>
     </QueryClientProvider>,
   );

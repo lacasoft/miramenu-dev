@@ -1,5 +1,4 @@
 import { ApiError, type DinerApi } from "@miramenu/api-client";
-import type { MenuDish, PublishedMenu } from "@miramenu/contracts";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
@@ -12,67 +11,21 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DinerApiContext } from "../app/api-context";
+import { EntryOutboxContext } from "../app/entry-outbox-context";
 import { t } from "../i18n";
+import { testOutbox } from "../test/entry-outbox";
+import {
+  GRINGA,
+  HORCHATA,
+  id,
+  MENU,
+  PASTOR,
+  SUADERO,
+  TIMINGS,
+} from "../test/menu-fixtures";
 import { revealInViewport } from "../test/setup";
 import { MenuScreen } from "./MenuScreen";
 
-const id = (n: number) =>
-  `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-
-const image = (name: string) => ({
-  width: 960,
-  height: 960,
-  sources: [{ width: 960, url: `https://cdn.example.test/${name}.webp` }],
-});
-
-const dish = (
-  n: number,
-  name: string,
-  extra: Partial<MenuDish> = {},
-): MenuDish => ({
-  id: id(n),
-  name,
-  description: `Descripción de ${name}`,
-  priceCents: 2500,
-  currency: "MXN",
-  available: true,
-  image: image(name),
-  video: null,
-  ...extra,
-});
-
-const PASTOR = dish(1, "Pastor");
-const SUADERO = dish(2, "Suadero", {
-  image: null,
-  video: {
-    url: "https://cdn.example.test/suadero.mp4",
-    width: 720,
-    height: 1280,
-    durationMs: 28_000,
-    poster: image("suadero-poster"),
-  },
-});
-const GRINGA = dish(3, "Gringa", { available: false, image: null });
-const HORCHATA = dish(4, "Horchata", { priceCents: 3000 });
-
-const MENU: PublishedMenu = {
-  branchId: id(900),
-  version: 1,
-  publishedAt: "2026-11-12T18:00:00.000Z",
-  profile: {
-    name: "La Fonda",
-    socialLinks: [
-      { network: "instagram", url: "https://instagram.com/lafonda" },
-    ],
-    logo: null,
-  },
-  categories: [
-    { id: id(100), name: "Tacos", dishes: [PASTOR, SUADERO, GRINGA] },
-    { id: id(200), name: "Bebidas", dishes: [HORCHATA] },
-  ],
-};
-
-const TIMINGS = { stillMs: 5000, holdMs: 10_000 };
 
 interface FakeLikes {
   liked?: string[];
@@ -127,7 +80,9 @@ function renderMenu(api: DinerApi = fakeApi().api) {
   return render(
     <QueryClientProvider client={client}>
       <DinerApiContext value={api}>
-        <MenuScreen menu={MENU} feedTimings={TIMINGS} />
+        <EntryOutboxContext value={testOutbox().outbox}>
+          <MenuScreen menu={MENU} feedTimings={TIMINGS} />
+        </EntryOutboxContext>
       </DinerApiContext>
     </QueryClientProvider>,
   );

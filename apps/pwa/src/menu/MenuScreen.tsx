@@ -16,6 +16,7 @@ import { MenuHeader } from "./MenuHeader";
 import { ProfileSheet } from "./ProfileSheet";
 import { t } from "../i18n";
 import styles from "./MenuScreen.module.css";
+import { useFeedMeasurement } from "./use-feed-measurement";
 import { LikesContext, useLikes } from "./use-likes";
 import { useMenuLocation } from "./use-menu-location";
 
@@ -39,6 +40,12 @@ export function MenuScreen({
   );
   const active = activeDishOf(dishes, location.dishId);
   const likes = useLikes(menu.branchId);
+  const covered = location.detail || location.comments || profileOpen;
+  const sceneChanging = useFeedMeasurement({
+    branchId: menu.branchId,
+    sceneDishId: location.view === "feed" ? (active?.dish.id ?? null) : null,
+    covered,
+  });
 
   if (active === undefined) return <StatusScreen kind="empty" />;
 
@@ -62,9 +69,12 @@ export function MenuScreen({
         <FeedView
           dishes={dishes}
           activeId={active.dish.id}
-          suspended={location.detail || location.comments || profileOpen}
+          suspended={covered}
           timings={feedTimings}
-          onActiveChange={(dishId) => move({ dishId })}
+          onActiveChange={(dishId, change) => {
+            sceneChanging(dishId, change);
+            move({ dishId });
+          }}
           onOpenDetail={(dishId) => move({ dishId, detail: true })}
           onOpenComments={(dishId) => move({ dishId, comments: true })}
         />

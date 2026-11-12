@@ -11,8 +11,10 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n";
 import { DinerApiContext } from "./api-context";
+import { EntryOutboxContext } from "./entry-outbox-context";
 import { App } from "./App";
 import { createQueryClient } from "./query-client";
+import { testOutbox } from "../test/entry-outbox";
 
 const BRANCH = "6f1c2e0a-8b3d-4c5e-9f7a-1b2c3d4e5f60";
 const ADDRESS = { subdomain: "lafonda", slug: "centro" };
@@ -63,7 +65,9 @@ function renderApp(
   render(
     <QueryClientProvider client={client}>
       <DinerApiContext value={api as DinerApi}>
-        <App address={address} feedTimings={{ stillMs: 5000, holdMs: 10_000 }} />
+        <EntryOutboxContext value={testOutbox().outbox}>
+          <App address={address} feedTimings={{ stillMs: 5000, holdMs: 10_000 }} />
+        </EntryOutboxContext>
       </DinerApiContext>
     </QueryClientProvider>,
   );
