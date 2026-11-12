@@ -1,6 +1,6 @@
 import { ApiError, type DinerApi } from "@miramenu/api-client";
 import type { PublishedMenu, Resolution } from "@miramenu/contracts";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { onlineManager, QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
   cleanup,
@@ -185,6 +185,22 @@ describe("the diner PWA", () => {
     expect(
       screen.queryByRole("heading", { name: t("status.unavailable.title") }),
     ).toBeNull();
+  });
+
+  it("asks for the menu even when the browser says it is offline", async () => {
+    // The transport decides what offline means: the last copy of the menu, or a failure.
+    onlineManager.setOnline(false);
+    try {
+      renderApp({
+        resolve: vi.fn(async () => RESOLUTION),
+        menu: vi.fn(async () => MENU),
+      });
+      expect(
+        await screen.findByRole("heading", { level: 1, name: "La Fonda" }),
+      ).toBeTruthy();
+    } finally {
+      onlineManager.setOnline(true);
+    }
   });
 
   it("treats a lost network like an outage", async () => {

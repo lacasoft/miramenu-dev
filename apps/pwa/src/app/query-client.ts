@@ -11,6 +11,9 @@ export function createQueryClient(): QueryClient {
         retry: (failures, error) =>
           isTemporary(error) && failures < MAX_RETRIES,
         staleTime: 60_000,
+        // Ask even when the browser says it is offline: the transport answers with the
+        // last copy of the menu (withLastCopy) or fails, and the screens show either.
+        networkMode: "always",
       },
     },
   });
