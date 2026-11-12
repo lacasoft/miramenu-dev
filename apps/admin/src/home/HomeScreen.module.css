@@ -3,6 +3,14 @@
   gap: var(--space-16);
 }
 
+.heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+}
+
 .title {
   margin: 0;
   font-size: var(--text-section);
@@ -25,6 +33,7 @@
 }
 
 .business {
+  position: relative;
   display: grid;
   gap: var(--space-8);
   min-height: 8rem;
@@ -71,4 +80,26 @@
 
 .more {
   justify-self: start;
+}
+
+/* The whole card opens the business: the link's area covers it, its text stays the name. */
+.link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-module);
+}
+
+.link:focus-visible {
+  outline: none;
+}
+
+.link:focus-visible::after {
+  outline: var(--focus-ring-width) solid var(--color-ring);
+  outline-offset: var(--focus-ring-offset);
 }

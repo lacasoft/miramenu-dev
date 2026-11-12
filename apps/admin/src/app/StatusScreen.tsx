@@ -3,12 +3,13 @@ import { t } from "../i18n";
 import controls from "../ui/controls.module.css";
 import styles from "./StatusScreen.module.css";
 
-type StatusKind = "unavailable" | "noAccess" | "notFound";
+type StatusKind = "unavailable" | "noAccess" | "notFound" | "forbidden";
 
 const TEXTS = {
   unavailable: ["status.unavailable.title", "status.unavailable.description"],
   noAccess: ["noAccess.title", "noAccess.description"],
   notFound: ["notFound.title", "notFound.description"],
+  forbidden: ["status.forbidden.title", "status.forbidden.description"],
 } as const;
 
 /** A whole screen that says what happened and offers the one way on. */

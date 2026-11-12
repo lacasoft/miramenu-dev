@@ -1,0 +1,134 @@
+/* A page behind the session: its way back, its title, and its cards on the mineral page. */
+.page {
+  display: grid;
+  gap: var(--space-16);
+}
+
+.back {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  color: var(--dashboard-ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-screen-title);
+  line-height: var(--text-screen-title-line-height);
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--dashboard-muted);
+}
+
+/* Two equal columns on desktop, one on a phone, in reading order. */
+.columns {
+  display: grid;
+  gap: var(--space-16);
+  align-items: start;
+}
+
+@media (min-width: 64rem) {
+  .columns {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.section {
+  display: grid;
+  gap: var(--space-16);
+  padding: var(--space-24);
+}
+
+.sectionHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--text-section);
+  line-height: var(--text-section-line-height);
+}
+
+.facts {
+  display: grid;
+  gap: var(--space-12);
+  margin: 0;
+}
+
+.facts dt {
+  color: var(--dashboard-muted);
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+}
+
+.facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.form {
+  display: grid;
+  gap: var(--space-16);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+
+.hint {
+  margin: 0;
+  color: var(--dashboard-muted);
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+}
+
+.chip {
+  justify-self: start;
+  margin: 0;
+  padding: var(--space-4) var(--space-12);
+  border-radius: var(--radius-pill);
+  background-color: var(--dashboard-positive);
+  color: var(--dashboard-positive-text);
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+  font-weight: 600;
+}
+
+.list {
+  display: grid;
+  gap: var(--space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A row of a list inside a card: a pale band, so it reads as one item. */
+.item {
+  display: grid;
+  gap: var(--space-8);
+  padding: var(--space-16);
+  border-radius: var(--radius-field);
+  background-color: var(--dashboard-background);
+}
+
+.itemTitle {
+  margin: 0;
+  font-size: var(--text-card);
+  line-height: var(--text-card-line-height);
+}
+
+.itemLink {
+  color: var(--dashboard-ink);
+}

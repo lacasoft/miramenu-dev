@@ -175,10 +175,10 @@ describe("the home", () => {
     expect(await screen.findByText(t("role.superadmin"))).toBeTruthy();
     expect(screen.getByText(t("home.superadmin"))).toBeTruthy();
     await screen.findByRole("heading", { name: "La Fonda" });
-    fireEvent.click(screen.getByRole("button", { name: t("home.loadMore") }));
+    fireEvent.click(screen.getByRole("button", { name: t("common.loadMore") }));
     expect(await screen.findByRole("heading", { name: "Tacos Beto" })).toBeTruthy();
     expect(api.businesses).toHaveBeenLastCalledWith("p1");
-    expect(screen.queryByRole("button", { name: t("home.loadMore") })).toBeNull();
+    expect(screen.queryByRole("button", { name: t("common.loadMore") })).toBeNull();
   });
 
   it("says so when the businesses cannot load, and loads them on asking again", async () => {

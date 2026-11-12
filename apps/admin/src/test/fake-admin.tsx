@@ -6,6 +6,7 @@ import { vi } from "vitest";
 import { AdminApiContext } from "../app/api-context";
 import { App } from "../app/App";
 import { createQueryClient } from "../app/query-client";
+import { worldApi, type World } from "./fake-world";
 
 export const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
@@ -44,13 +45,16 @@ export function fakeAdminApi({
   signedIn = null,
   accounts = { "ana@lafonda.example": actor() },
   pages = [{ items: [business(10, "La Fonda")], nextCursor: null }],
+  world = { businesses: [business(10, "La Fonda")], branches: [], users: [], mailWorks: true },
 }: {
   signedIn?: SessionActor | null;
   accounts?: Record<string, SessionActor>;
   pages?: Page<Business>[];
+  world?: World;
 } = {}) {
   let current = signedIn;
   const api = {
+    ...worldApi(world, () => current),
     session: vi.fn(async () => current),
     signIn: vi.fn(async ({ email }: { email: string; password: string }) => {
       const account = accounts[email];
@@ -68,7 +72,7 @@ export function fakeAdminApi({
       return page;
     }),
   };
-  return { api, end: () => (current = null) };
+  return { api, world, end: () => (current = null) };
 }
 
 /** The app at a path, with the real query client and its retry policy, without waiting. */

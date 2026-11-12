@@ -35,3 +35,26 @@ body {
   white-space: nowrap;
   border: 0;
 }
+
+/* Printing a branch's QR code: only its printable block, centered on a white page. */
+@media print {
+  /* body.dashboard paints the mineral page: the printed one is white. */
+  body.dashboard {
+    background: #FFFFFF;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .printable,
+  .printable * {
+    visibility: visible;
+  }
+
+  .printable {
+    position: absolute;
+    inset: 0;
+    align-content: center;
+  }
+}

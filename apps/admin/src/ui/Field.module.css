@@ -31,3 +31,10 @@
   font-size: var(--text-label);
   line-height: var(--text-label-line-height);
 }
+
+.hint {
+  margin: 0;
+  color: var(--dashboard-muted);
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+}

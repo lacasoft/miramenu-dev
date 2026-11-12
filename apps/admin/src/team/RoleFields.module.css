@@ -1,0 +1,48 @@
+.fieldset,
+.branches {
+  display: grid;
+  gap: var(--space-8);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.branches {
+  padding-left: var(--space-24);
+}
+
+.legend {
+  margin-bottom: var(--space-8);
+  padding: 0;
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+  font-weight: 600;
+}
+
+/* The whole row is the target: 48 px tall, the box drawn in the ink color. */
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-height: var(--touch-target);
+  cursor: pointer;
+}
+
+.option input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  accent-color: var(--dashboard-ink);
+}
+
+.hint {
+  margin: 0;
+  color: var(--dashboard-muted);
+}
+
+.error {
+  margin: 0;
+  color: var(--dashboard-negative-text);
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+}

@@ -1,11 +1,18 @@
-import { hasAccess, hrefOf, routeOf, safeNext, type AdminRoute } from "@miramenu/admin-core";
+import { canCreateBusiness, hasAccess, hrefOf, routeOf, safeNext, type AdminRoute } from "@miramenu/admin-core";
+import type { SessionActor } from "@miramenu/contracts";
+import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
 import { InvitationScreen } from "../auth/InvitationScreen";
 import { SignInScreen } from "../auth/SignInScreen";
+import { BranchScreen } from "../branch/BranchScreen";
+import { BusinessScreen } from "../business/BusinessScreen";
+import { NewBusinessScreen } from "../business/NewBusinessScreen";
+import { TeamScreen } from "../team/TeamScreen";
 import { HomeScreen } from "../home/HomeScreen";
 import { t } from "../i18n";
 import { navigate, useLocation, type AppLocation } from "../platform/location";
 import { AppShell } from "../shell/AppShell";
+import { AppLink } from "../ui/AppLink";
 import controls from "../ui/controls.module.css";
 import { useSession, useSignOut } from "./session";
 import { LoadingScreen, StatusScreen } from "./StatusScreen";
@@ -21,6 +28,30 @@ export function App() {
       return <InvitationScreen />;
     default:
       return <SessionGate route={route} location={location} />;
+  }
+}
+
+const toHome = (
+  <AppLink className={controls.link} href="/">
+    {t("notFound.home")}
+  </AppLink>
+);
+
+/** The screen a page behind the session shows; every one lives in the home's section. */
+function screenOf(route: AdminRoute, actor: SessionActor): ReactNode {
+  switch (route.screen) {
+    case "home":
+      return <HomeScreen actor={actor} />;
+    case "newBusiness":
+      return canCreateBusiness(actor) ? <NewBusinessScreen /> : <StatusScreen kind="forbidden" inShell action={toHome} />;
+    case "business":
+      return <BusinessScreen key={route.businessId} actor={actor} businessId={route.businessId} />;
+    case "team":
+      return <TeamScreen key={route.businessId} actor={actor} businessId={route.businessId} />;
+    case "branch":
+      return <BranchScreen key={route.branchId} actor={actor} branchId={route.branchId} />;
+    default:
+      return <StatusScreen kind="notFound" inShell action={toHome} />;
   }
 }
 
@@ -61,28 +92,9 @@ function SessionGate({ route, location }: { route: AdminRoute; location: AppLoca
 
   if (actor) {
     if (!hasAccess(actor)) return <NoAccess />;
-    return route.screen === "home" ? (
-      <AppShell actor={actor} section="home">
-        <HomeScreen actor={actor} />
-      </AppShell>
-    ) : (
-      <AppShell actor={actor} section={null}>
-        <StatusScreen
-          kind="notFound"
-          inShell
-          action={
-            <a
-              className={controls.link}
-              href="/"
-              onClick={(event) => {
-                event.preventDefault();
-                navigate("/");
-              }}
-            >
-              {t("notFound.home")}
-            </a>
-          }
-        />
+    return (
+      <AppShell actor={actor} section={route.screen === "notFound" ? null : "home"}>
+        {screenOf(route, actor)}
       </AppShell>
     );
   }
