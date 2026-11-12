@@ -55,7 +55,10 @@ export function configureApp(
       allow(
         null,
         origin !== undefined &&
-          (config.corsAllowedOrigins.includes(origin) ||
+          // The admin app is the one origin its writes accept (AdminOriginGuard), on
+          // whatever host and port it lives (ADR-0047).
+          (origin === config.adminAppUrl ||
+            config.corsAllowedOrigins.includes(origin) ||
             isPublicSiteOrigin(site, origin)),
       ),
     credentials: true,

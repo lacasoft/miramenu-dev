@@ -1,0 +1,77 @@
+import { paramsOf } from "./query.ts";
+
+/**
+ * The admin's screens and where each lives in the URL (ADR-0047). Every phase adds its
+ * own; a path the app does not know is notFound, never a guess.
+ */
+export type AdminRoute =
+  /** `next`: where to go back after signing in; `notice`: why the admin is here. */
+  | { screen: "signIn"; next: string | null; notice: SignInNotice | null }
+  /** The token comes in the fragment, never in the path (ADR-0033). */
+  | { screen: "invitation" }
+  | { screen: "home" }
+  | { screen: "notFound" };
+
+/** The session had ended, or an invitation was just accepted. */
+export type SignInNotice = "ended" | "invited";
+
+const NOTICES: readonly SignInNotice[] = ["ended", "invited"];
+const noticeOf = (value: string | undefined): SignInNotice | null =>
+  NOTICES.find((notice) => notice === value) ?? null;
+
+export const SIGN_IN_PATH = "/login";
+/** The API's invitation emails link here (`ADMIN_APP_URL/invitation#token=…`). */
+export const INVITATION_PATH = "/invitation";
+
+const normalized = (pathname: string) =>
+  pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+
+export function routeOf(location: { pathname: string; search: string }): AdminRoute {
+  const path = normalized(location.pathname);
+  if (path === SIGN_IN_PATH) {
+    const params = paramsOf(location.search);
+    return {
+      screen: "signIn",
+      next: safeNext(params.get("next") ?? null),
+      notice: noticeOf(params.get("notice")),
+    };
+  }
+  if (path === INVITATION_PATH) return { screen: "invitation" };
+  if (path === "/") return { screen: "home" };
+  return { screen: "notFound" };
+}
+
+export function hrefOf(route: AdminRoute): string {
+  switch (route.screen) {
+    case "signIn": {
+      const query = [
+        ...(route.next === null ? [] : [`next=${encodeURIComponent(route.next)}`]),
+        ...(route.notice === null ? [] : [`notice=${route.notice}`]),
+      ];
+      return query.length === 0 ? SIGN_IN_PATH : `${SIGN_IN_PATH}?${query.join("&")}`;
+    }
+    case "invitation":
+      return INVITATION_PATH;
+    case "home":
+    case "notFound":
+      return "/";
+  }
+}
+
+/** Every screen but signing in and accepting an invitation is behind the session. */
+export const needsSession = (route: AdminRoute): boolean =>
+  route.screen !== "signIn" && route.screen !== "invitation";
+
+/**
+ * Where to go back after signing in: one of the app's own pages behind the session, as a
+ * path and query. Anything else (another site, `//host`, a backslash, signing in again)
+ * is dropped, so the link can never send the admin away (CWE-601).
+ */
+export function safeNext(next: string | null): string | null {
+  if (next === null || !next.startsWith("/") || next.startsWith("//")) return null;
+  if (/[\\\u0000-\u001f\u007f]/.test(next)) return null;
+  const at = next.search(/[?#]/);
+  const pathname = at < 0 ? next : next.slice(0, at);
+  const search = at < 0 || next[at] === "#" ? "" : next.slice(at).replace(/#.*$/, "");
+  return needsSession(routeOf({ pathname, search })) ? `${pathname}${search}` : null;
+}

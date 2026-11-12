@@ -27,7 +27,8 @@ import {
   type Resolution,
   type VerifyCodeRequest,
 } from "@miramenu/contracts";
-import { ApiError, failureOf } from "./api-error.ts";
+import { isUnauthorized } from "./api-error.ts";
+import { requester, type Schema } from "./requester.ts";
 import type { HttpRequest, Transport } from "./transport.ts";
 
 export interface DinerApiOptions {
@@ -36,10 +37,6 @@ export interface DinerApiOptions {
   transport: Transport;
   /** The device's anonymous id (ADR-0040), sent on the calls made as the device. */
   deviceId: () => string;
-}
-
-interface Schema<T> {
-  safeParse(value: unknown): { success: true; data: T } | { success: false };
 }
 
 /**
@@ -58,45 +55,7 @@ export function createDinerApi({
 }: DinerApiOptions) {
   const origin = baseUrl.replace(/\/+$/, "");
 
-  /** Sends a request and gives back its status and body, or throws its failure. */
-  async function exchange(request: HttpRequest) {
-    let response;
-    try {
-      response = await transport(request);
-    } catch {
-      throw new ApiError({ kind: "network" });
-    }
-    let body: string;
-    try {
-      body = await response.text();
-    } catch {
-      throw new ApiError({ kind: "network" });
-    }
-    if (response.status < 200 || response.status >= 300)
-      throw new ApiError(
-        failureOf(response.status, body, response.header("retry-after")),
-      );
-    return { response, body };
-  }
-
-  /** A call whose answer carries nothing to read (204). */
-  async function act(request: HttpRequest): Promise<void> {
-    await exchange(request);
-  }
-
-  async function call<T>(request: HttpRequest, schema: Schema<T>): Promise<T> {
-    const { response, body } = await exchange(request);
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(body);
-    } catch {
-      throw new ApiError({ kind: "unexpected", status: response.status });
-    }
-    const result = schema.safeParse(parsed);
-    if (!result.success)
-      throw new ApiError({ kind: "unexpected", status: response.status });
-    return result.data;
-  }
+  const { act, call } = requester(transport);
 
   const get = <T>(path: string, schema: Schema<T>) =>
     call({ method: "GET", url: `${origin}${path}`, headers: {} }, schema);
@@ -200,8 +159,7 @@ export function createDinerApi({
           dinerSessionSchema,
         );
       } catch (error) {
-        if (error instanceof ApiError && error.failure.kind === "http" && error.failure.status === 401)
-          return null;
+        if (isUnauthorized(error)) return null;
         throw error;
       }
     },

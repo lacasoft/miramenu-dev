@@ -4,6 +4,7 @@ import request from 'supertest';
 import type { App } from 'supertest/types';
 import { z } from 'zod';
 import { parseEnvironment } from '../src/infrastructure/config/environment';
+import { ADMIN_ORIGIN } from './support/admin-fixtures';
 import { PWA_ORIGIN } from './support/diner-fixtures';
 import { createTestApp } from './support/test-app';
 
@@ -126,6 +127,24 @@ describe('HTTP contract (e2e)', () => {
     expect(read.headers['vary']).toMatch(/Origin/);
     // The PWA must read Retry-After to count down after a 429.
     expect(read.headers['access-control-expose-headers']).toBe('Retry-After');
+  });
+
+  // ADR-0047: the admin app may live on another port than the public site (local).
+  it('lets the admin app call the API with its cookies, and no other port of its host', async () => {
+    const preflight = await request(app.getHttpServer())
+      .options('/admin/session')
+      .set('Origin', ADMIN_ORIGIN)
+      .set('Access-Control-Request-Method', 'POST')
+      .set('Access-Control-Request-Headers', 'content-type')
+      .expect(204);
+    expect(preflight.headers['access-control-allow-origin']).toBe(ADMIN_ORIGIN);
+    expect(preflight.headers['access-control-allow-credentials']).toBe('true');
+
+    const admin = new URL(ADMIN_ORIGIN);
+    const otherPort = await request(app.getHttpServer())
+      .get('/health/live')
+      .set('Origin', `${admin.protocol}//${admin.hostname}:1`);
+    expect(otherPort.headers['access-control-allow-origin']).toBeUndefined();
   });
 
   it('refuses look-alikes of the public site', async () => {

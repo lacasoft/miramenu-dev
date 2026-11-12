@@ -4,6 +4,7 @@ export {
   errorCodeOf,
   isNotFound,
   isTemporary,
+  isUnauthorized,
   type ApiFailure,
 } from "./api-error.ts";
 export {
@@ -11,3 +12,8 @@ export {
   type DinerApi,
   type DinerApiOptions,
 } from "./diner-api.ts";
+export {
+  createAdminApi,
+  type AdminApi,
+  type AdminApiOptions,
+} from "./admin-api.ts";

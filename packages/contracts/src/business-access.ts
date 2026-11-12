@@ -200,6 +200,7 @@ export const businessPageSchema = pageSchema(businessSchema);
 export const branchPageSchema = pageSchema(branchSchema);
 export const businessUserPageSchema = pageSchema(businessUserSchema);
 
+export type LoginRequest = z.infer<typeof loginRequestSchema>;
 export type SessionActor = z.infer<typeof sessionActorSchema>;
 export type Business = z.infer<typeof businessSchema>;
 export type CreatedBusiness = z.infer<typeof createdBusinessSchema>;

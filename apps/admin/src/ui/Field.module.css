@@ -1,0 +1,33 @@
+.field {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.label {
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+  font-weight: 600;
+}
+
+/* The border identifies the control: 7:1 against the card (WCAG 1.4.11). */
+.input {
+  min-height: var(--touch-target);
+  padding: 0 var(--space-16);
+  border: 1px solid var(--dashboard-muted);
+  border-radius: var(--radius-field);
+  background-color: var(--dashboard-card);
+  color: var(--dashboard-ink);
+  font: inherit;
+}
+
+.input[aria-invalid="true"] {
+  border-width: 2px;
+  border-color: var(--dashboard-negative-text);
+}
+
+.error {
+  margin: 0;
+  color: var(--dashboard-negative-text);
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+}
