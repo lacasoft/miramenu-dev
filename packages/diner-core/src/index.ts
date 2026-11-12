@@ -25,3 +25,14 @@ export {
   type MenuImage,
   type MenuVideo,
 } from "./media.ts";
+export {
+  feedTimer,
+  nextPlayback,
+  nextSceneIndex,
+  type FeedEvent,
+  type FeedPlayback,
+  type FeedTimer,
+  type FeedTimings,
+  type FeedTransition,
+  type SceneKind,
+} from "./feed-playback.ts";
