@@ -6,45 +6,6 @@
   object-fit: cover;
 }
 
-.controls {
-  position: absolute;
-  inset: auto var(--space-16)
-    calc(var(--space-16) + env(safe-area-inset-bottom));
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
-}
-
-.track {
-  flex: 1;
-  height: var(--space-4);
-  overflow: hidden;
-  border-radius: var(--radius-pill);
-  background-color: color-mix(
-    in srgb,
-    var(--color-foreground) 30%,
-    transparent
-  );
-}
-
-.progress {
-  height: 100%;
-  background-color: var(--color-foreground);
-  transform-origin: left;
-}
-
-.control {
-  display: grid;
-  place-items: center;
-  width: var(--touch-target);
-  height: var(--touch-target);
-  padding: 0;
-  border-radius: var(--radius-pill);
-  color: var(--color-foreground);
-  cursor: pointer;
-}
-
 .failed {
   position: absolute;
   inset: 40% var(--space-16) auto;

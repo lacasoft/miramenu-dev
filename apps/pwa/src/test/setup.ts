@@ -48,6 +48,11 @@ export function revealInViewport(target: Element) {
 
 vi.stubGlobal("IntersectionObserver", FakeIntersectionObserver);
 
+// Scrolling an element into view lands on it: its observers learn it is intersecting.
+Element.prototype.scrollIntoView = function scrollIntoView() {
+  revealInViewport(this);
+};
+
 vi.stubGlobal("matchMedia", (query: string) => ({
   matches: false,
   media: query,
