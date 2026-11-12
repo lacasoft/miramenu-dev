@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { type ErrorResponse, GENERIC_ERROR_CODES } from '@miramenu/contracts';
 import type { Request, Response } from 'express';
+import { isDatabaseUnavailable } from '../database/database-unavailable';
 import { ApiException } from './api-exception';
 import { requestIdOf } from './request-id';
 import { RequestValidationException } from './request-validation';
@@ -28,6 +29,19 @@ const CODE_BY_STATUS: Readonly<Record<number, string>> = {
 };
 
 const INTERNAL_ERROR_MESSAGE = 'Internal server error';
+const UNAVAILABLE_MESSAGE =
+  'Service temporarily unavailable; try again shortly';
+
+/**
+ * An HttpException keeps its status. Anything else is a 500, unless Postgres could not be
+ * reached: then it is a 503, so the client knows a retry may work (design, "Fallas previstas").
+ */
+export function errorStatusFor(exception: unknown): number {
+  if (exception instanceof HttpException) return exception.getStatus();
+  return isDatabaseUnavailable(exception)
+    ? HttpStatus.SERVICE_UNAVAILABLE
+    : HttpStatus.INTERNAL_SERVER_ERROR;
+}
 
 export function errorCodeFor(exception: unknown, status: number): string {
   if (exception instanceof ApiException) return exception.code;
@@ -39,12 +53,15 @@ export function errorCodeFor(exception: unknown, status: number): string {
 /**
  * Client errors keep their message. Internal errors never do: a 500 may carry SQL,
  * paths or secrets, so the client only gets a generic text and the log gets the rest.
+ * The same goes for a driver's error behind a 503, which names hosts and ports.
  */
 export function errorMessageFor(exception: unknown, status: number): string {
-  if (
-    !(exception instanceof HttpException) ||
-    status === HttpStatus.INTERNAL_SERVER_ERROR
-  ) {
+  if (!(exception instanceof HttpException)) {
+    return status === HttpStatus.SERVICE_UNAVAILABLE
+      ? UNAVAILABLE_MESSAGE
+      : INTERNAL_ERROR_MESSAGE;
+  }
+  if (status === HttpStatus.INTERNAL_SERVER_ERROR) {
     return INTERNAL_ERROR_MESSAGE;
   }
   const response = exception.getResponse();
@@ -73,10 +90,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const http = host.switchToHttp();
     const request = http.getRequest<Request>();
     const response = http.getResponse<Response>();
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    const status = errorStatusFor(exception);
     const body: ErrorResponse = {
       code: errorCodeFor(exception, status),
       message: errorMessageFor(exception, status),
