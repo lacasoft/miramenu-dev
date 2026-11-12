@@ -82,6 +82,11 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - run: npm run build --workspaces --if-present
+        env:
+          # The PWA's build fails without its configuration; these are production's
+          # public origins (ADR-0045), not secrets.
+          VITE_API_URL: https://api.mirame.nu
+          VITE_PUBLIC_SITE_URL: https://mirame.nu
 
   audit:
     name: Dependency audit

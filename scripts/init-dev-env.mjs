@@ -60,6 +60,9 @@ const variables = [
   ['TWILIO_STATUS_CALLBACK_URL', () => `http://127.0.0.1:${ports.api}/webhooks/verification/status`],
   ['DINER_CODE_SECRET', secret],
   ['PRIVACY_NOTICE_VERSION', () => 'dev'],
+  // The diner's PWA (apps/pwa): the API on its own host of the same local site (ADR-0045).
+  ['VITE_API_URL', () => `http://api.miramenu.localhost:${ports.api}`],
+  ['VITE_PUBLIC_SITE_URL', () => 'http://miramenu.localhost:5173'],
 ];
 
 const line = ([name, value]) => `${name}=${value()}`;

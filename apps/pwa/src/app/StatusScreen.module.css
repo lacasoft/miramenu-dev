@@ -1,0 +1,39 @@
+.screen {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: var(--mobile-margin);
+}
+
+.panel {
+  display: grid;
+  gap: var(--space-16);
+  max-width: 28rem;
+  padding: var(--space-24);
+  border-radius: var(--radius-panel);
+  background-color: var(--color-surface);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-section);
+  line-height: var(--text-section-line-height);
+}
+
+.description {
+  margin: 0;
+}
+
+.retry {
+  justify-self: start;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-24);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-primary);
+  color: var(--color-primary-foreground);
+  font: inherit;
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+  cursor: pointer;
+}

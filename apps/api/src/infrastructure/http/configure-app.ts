@@ -3,6 +3,7 @@ import helmet from 'helmet';
 import type { AppConfig } from '../config/environment';
 import { AdminOriginGuard } from './admin-origin.guard';
 import { AllExceptionsFilter } from './all-exceptions.filter';
+import { isPublicSiteOrigin } from './public-site-origin.guard';
 import { requestIdMiddleware } from './request-id';
 import { createValidationPipe } from './request-validation';
 
@@ -10,10 +11,14 @@ interface ExpressSettings {
   set(setting: string, value: unknown): void;
 }
 
+/** Preflights are cached this long (s), so a diner's writes do not pay one each time. */
+const CORS_MAX_AGE_SECONDS = 600;
+
 /**
  * HTTP setup shared by main.ts and the e2e tests, so tests exercise exactly what runs.
- * CORS stays off unless an allowlist is configured: behind the proxy the apps and the API
- * share the site, and a wildcard origin is never allowed.
+ * CORS admits the public site and each restaurant subdomain, whose PWA calls the API on
+ * its own host with the diner's cookie (ADR-0045), plus the configured allowlist. Any
+ * other origin gets no CORS headers, and a wildcard origin is never allowed.
  */
 export function configureApp(
   app: NestExpressApplication,
@@ -41,9 +46,21 @@ export function configureApp(
       next();
     },
   );
-  if (config.corsAllowedOrigins.length > 0) {
-    app.enableCors({ origin: config.corsAllowedOrigins, credentials: true });
-  }
+  const site = new URL(config.publicSiteUrl);
+  app.enableCors({
+    origin: (
+      origin: string | undefined,
+      allow: (error: Error | null, allowed: boolean) => void,
+    ) =>
+      allow(
+        null,
+        origin !== undefined &&
+          (config.corsAllowedOrigins.includes(origin) ||
+            isPublicSiteOrigin(site, origin)),
+      ),
+    credentials: true,
+    maxAge: CORS_MAX_AGE_SECONDS,
+  });
   app.useGlobalGuards(new AdminOriginGuard(config));
   app.useGlobalPipes(createValidationPipe());
   app.useGlobalFilters(new AllExceptionsFilter());

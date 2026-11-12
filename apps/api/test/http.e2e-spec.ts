@@ -3,6 +3,8 @@ import { errorResponseSchema } from '@miramenu/contracts';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { z } from 'zod';
+import { parseEnvironment } from '../src/infrastructure/config/environment';
+import { PWA_ORIGIN } from './support/diner-fixtures';
 import { createTestApp } from './support/test-app';
 
 const UUID =
@@ -94,12 +96,51 @@ describe('HTTP contract (e2e)', () => {
     expect(response.headers['cache-control']).toBe('no-store');
   });
 
-  it('allows no cross-origin request when no allowlist is configured', async () => {
+  it('allows no cross-origin request from outside the public site', async () => {
     const response = await request(app.getHttpServer())
       .get('/health/live')
       .set('Origin', 'https://evil.example');
 
     expect(response.headers['access-control-allow-origin']).toBeUndefined();
+  });
+
+  // ADR-0045: the PWA on each restaurant's subdomain calls the API on its own host.
+  it('lets a restaurant subdomain of the public site call the API with its cookies', async () => {
+    const preflight = await request(app.getHttpServer())
+      .options('/branches/6f1c2e0a-8b3d-4c5e-9f7a-1b2c3d4e5f60/menu')
+      .set('Origin', PWA_ORIGIN)
+      .set('Access-Control-Request-Method', 'PUT')
+      .set('Access-Control-Request-Headers', 'content-type,x-device-id')
+      .expect(204);
+    expect(preflight.headers['access-control-allow-origin']).toBe(PWA_ORIGIN);
+    expect(preflight.headers['access-control-allow-credentials']).toBe('true');
+    expect(preflight.headers['access-control-allow-headers']).toBe(
+      'content-type,x-device-id',
+    );
+    expect(Number(preflight.headers['access-control-max-age'])).toBe(600);
+
+    const read = await request(app.getHttpServer())
+      .get('/health/live')
+      .set('Origin', PWA_ORIGIN);
+    expect(read.headers['access-control-allow-origin']).toBe(PWA_ORIGIN);
+    expect(read.headers['vary']).toMatch(/Origin/);
+  });
+
+  it('refuses look-alikes of the public site', async () => {
+    const site = new URL(parseEnvironment(process.env).publicSiteUrl);
+    const lookalikes = [
+      `${site.protocol}//tacos.${site.hostname}.evil.example${site.port ? `:${site.port}` : ''}`,
+      `${site.protocol}//evil${site.host}`,
+      `${site.protocol}//tacos.${site.hostname}:1`,
+      `${site.protocol === 'https:' ? 'http:' : 'https:'}//tacos.${site.host}`,
+      'null',
+    ];
+    for (const origin of lookalikes) {
+      const response = await request(app.getHttpServer())
+        .get('/health/live')
+        .set('Origin', origin);
+      expect(response.headers['access-control-allow-origin']).toBeUndefined();
+    }
   });
 });
 
@@ -119,7 +160,12 @@ describe('CORS allowlist (e2e)', () => {
     await app.close();
   });
 
-  it('echoes an allowed origin with credentials and ignores any other', async () => {
+  it('echoes an allowed origin with credentials, keeps the public site and ignores any other', async () => {
+    const site = await request(app.getHttpServer())
+      .get('/health/live')
+      .set('Origin', PWA_ORIGIN);
+    expect(site.headers['access-control-allow-origin']).toBe(PWA_ORIGIN);
+
     const allowed = await request(app.getHttpServer())
       .get('/health/live')
       .set('Origin', 'https://admin.example');
