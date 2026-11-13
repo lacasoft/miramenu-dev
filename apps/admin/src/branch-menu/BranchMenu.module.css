@@ -1,0 +1,25 @@
+/* What the branch changed of a dish, in words: a row of small labels under its name. */
+.flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.flags li {
+  padding: var(--space-4) var(--space-12);
+  border-radius: var(--radius-pill);
+  background-color: var(--dashboard-positive);
+  color: var(--dashboard-positive-text);
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+  font-weight: 600;
+}
+
+/* Sold out or hidden here: the negative pair, and its words say which. */
+.flags .warning {
+  background-color: var(--dashboard-negative);
+  color: var(--dashboard-negative-text);
+}

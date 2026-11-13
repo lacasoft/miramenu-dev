@@ -1,4 +1,6 @@
 import {
+  branchDishSchema,
+  branchMenuDraftSchema,
   branchPageSchema,
   branchSchema,
   businessMenuDraftSchema,
@@ -15,15 +17,19 @@ import {
   invitedUserSchema,
   mediaPageSchema,
   mediaSchema,
+  overrideSchema,
   profileSchema,
   publicationSchema,
   qrLinkSchema,
   sessionActorSchema,
   type Branch,
+  type BranchDish,
+  type BranchMenuDraft,
   type Business,
   type BusinessMenuDraft,
   type BusinessUser,
   type Category,
+  type CreateBranchDishRequest,
   type CreateBranchRequest,
   type CreateBusinessRequest,
   type CreateCategoryRequest,
@@ -36,15 +42,19 @@ import {
   type InvitedUser,
   type InviteUserRequest,
   type LoginRequest,
+  type Override,
   type Media,
   type Page,
   type Profile,
+  type PublishBranchMenuRequest,
   type Publication,
   type PublishBusinessMenuRequest,
+  type PutOverrideRequest,
   type PutProfileRequest,
   type QrLink,
   type RoleTarget,
   type SessionActor,
+  type UpdateBranchDishRequest,
   type UpdateBranchRequest,
   type UpdateBusinessRequest,
   type UpdateCategoryRequest,
@@ -280,6 +290,80 @@ export function createAdminApi({ baseUrl, transport }: AdminApiOptions) {
     mediaProblems(businessId: string, cursor?: string): Promise<Page<Media>> {
       const page = cursor === undefined ? "" : `&cursor=${encodeURIComponent(cursor)}`;
       return call(at("GET", `/admin/businesses/${id(businessId)}/media?problem=true${page}`), mediaPageSchema);
+    },
+
+    /**
+     * The branch's draft: its adjustments to the base dishes, its own dishes, its own
+     * profile (null: the business's) and the media those use. The base menu it adjusts is
+     * its business's draft.
+     */
+    branchMenuDraft(branchId: string): Promise<BranchMenuDraft> {
+      return call(at("GET", `/admin/branches/${id(branchId)}/menu-draft`), branchMenuDraftSchema);
+    },
+
+    /** Sets the branch's adjustment of a base dish; a null price keeps the base price. */
+    putOverride(branchId: string, dishId: string, override: PutOverrideRequest): Promise<Override> {
+      return call(json("PUT", `/admin/branches/${id(branchId)}/overrides/${id(dishId)}`, override), overrideSchema);
+    },
+
+    /** Back to the base dish as it is. */
+    removeOverride(branchId: string, dishId: string): Promise<void> {
+      return act(at("DELETE", `/admin/branches/${id(branchId)}/overrides/${id(dishId)}`));
+    },
+
+    /** A dish of the branch alone, in one of its business's categories. */
+    createBranchDish(branchId: string, dish: CreateBranchDishRequest): Promise<BranchDish> {
+      return call(json("POST", `/admin/branches/${id(branchId)}/dishes`, dish), branchDishSchema);
+    },
+
+    updateBranchDish(branchId: string, dishId: string, update: UpdateBranchDishRequest): Promise<BranchDish> {
+      return call(json("PATCH", `/admin/branches/${id(branchId)}/dishes/${id(dishId)}`, update), branchDishSchema);
+    },
+
+    removeBranchDish(branchId: string, dishId: string): Promise<void> {
+      return act(at("DELETE", `/admin/branches/${id(branchId)}/dishes/${id(dishId)}`));
+    },
+
+    /** A profile of the branch's own; a missing logoId detaches the logo. */
+    putBranchProfile(branchId: string, profile: PutProfileRequest): Promise<Profile> {
+      return call(json("PUT", `/admin/branches/${id(branchId)}/profile`, profile), profileSchema);
+    },
+
+    /** Back to the business's profile. */
+    removeBranchProfile(branchId: string): Promise<void> {
+      return act(at("DELETE", `/admin/branches/${id(branchId)}/profile`));
+    },
+
+    /** A medium of the branch alone, signed like the business's (ADR-0038). */
+    createBranchMedia(branchId: string, request: CreateMediaRequest): Promise<CreatedMedia> {
+      return call(json("POST", `/admin/branches/${id(branchId)}/media`, request), createdMediaSchema);
+    },
+
+    completeBranchMedia(branchId: string, mediaId: string): Promise<Media> {
+      return call(at("POST", `/admin/branches/${id(branchId)}/media/${id(mediaId)}/complete`), mediaSchema);
+    },
+
+    /** The media with a problem the branch sees: its business's and its own. */
+    branchMediaProblems(branchId: string, cursor?: string): Promise<Page<Media>> {
+      const page = cursor === undefined ? "" : `&cursor=${encodeURIComponent(cursor)}`;
+      return call(at("GET", `/admin/branches/${id(branchId)}/media?problem=true${page}`), mediaPageSchema);
+    },
+
+    /**
+     * Publishes the branch's adjustments over its business's last published base menu
+     * (ADR-0036). A 409 DRAFT_CHANGED, BASE_MENU_NOT_PUBLISHED or CATEGORY_NOT_PUBLISHED
+     * says what to do first; the key works as in `publishBusinessMenu`.
+     */
+    publishBranchMenu(
+      branchId: string,
+      request: PublishBranchMenuRequest,
+      idempotencyKey: string,
+    ): Promise<Publication> {
+      const publish = json("POST", `/admin/branches/${id(branchId)}/publications`, request);
+      return call(
+        { ...publish, headers: { ...publish.headers, [IDEMPOTENCY_KEY_HEADER]: idempotencyKey } },
+        publicationSchema,
+      );
     },
 
     /**

@@ -71,7 +71,10 @@ export function MenuScreen({
             editable={editable}
           />
           {editable && (
-            <MediaProblemsSection businessId={businessId} states={mediaStatesOf(draft.data.media)} />
+            <MediaProblemsSection
+              queryKey={keys.mediaProblemsAt(businessId, mediaStatesOf(draft.data.media))}
+              list={(client, cursor) => client.mediaProblems(businessId, cursor)}
+            />
           )}
         </div>
         <CategoriesSection

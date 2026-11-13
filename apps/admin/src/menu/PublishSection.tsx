@@ -1,44 +1,22 @@
-import {
-  attemptOf,
-  conflictKeyOf,
-  keepsAttempt,
-  publicationOf,
-  publishProblemOf,
-  rereadsDraft,
-  type PublicationAttempt,
-  type PublishProblem,
-} from "@miramenu/admin-core";
+import { conflictKeyOf, publicationOf } from "@miramenu/admin-core";
 import type {
   Branch,
   BusinessMenuDraft,
   Publication,
   PublicationConflict,
+  PublishBusinessMenuRequest,
 } from "@miramenu/contracts";
 import { formatPrice } from "@miramenu/i18n";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useAdminApi } from "../app/api-context";
-import { callFailureOf } from "../app/failures";
 import { keys } from "../app/keys";
 import { allBranchesOf } from "../team/team-data";
 import { t } from "../i18n";
 import controls from "../ui/controls.module.css";
 import page from "../ui/page.module.css";
 import styles from "./menu.module.css";
-
-const PROBLEM_TEXT = {
-  draftChanged: "publish.problem.draftChanged",
-  conflictsChanged: "publish.problem.conflictsChanged",
-  profileRequired: "publish.problem.profileRequired",
-  keyReused: "publish.problem.keyReused",
-  forbidden: "publish.problem.forbidden",
-  notFound: "publish.problem.notFound",
-  invalid: "publish.problem.invalid",
-  unavailable: "publish.problem.unavailable",
-} as const;
-
-/** A key the API accepts (16 to 128 of letters, digits, `_` and `-`): a random UUID. */
-const freshKey = () => crypto.randomUUID();
+import { publishProblemText, usePublication } from "./use-publication";
 
 function doneText({ version, menus }: Publication): string {
   if (menus.length === 0) return t("publish.done.none", { version });
@@ -133,46 +111,27 @@ export function PublishSection({
   draft: BusinessMenuDraft;
   editable: boolean;
 }) {
-  const api = useAdminApi();
-  const client = useQueryClient();
   const [reviewing, setReviewing] = useState(false);
   const [confirmed, setConfirmed] = useState<ReadonlySet<string>>(new Set());
   const [tried, setTried] = useState(false);
-  const [attempt, setAttempt] = useState<PublicationAttempt | null>(null);
-  const [problem, setProblem] = useState<PublishProblem | null>(null);
-  const [done, setDone] = useState<Publication | null>(null);
-  const rereadDraft = () =>
-    client.invalidateQueries({ queryKey: keys.menuDraft(businessId) });
-
-  const publish = useMutation({
-    mutationFn: ({ request, key }: PublicationAttempt) =>
-      api.publishBusinessMenu(businessId, request, key),
-    onSuccess: (publication) => {
-      setDone(publication);
-      setAttempt(null);
+  const publication = usePublication({
+    draftKey: keys.menuDraft(businessId),
+    publish: (api, request: PublishBusinessMenuRequest, key) => api.publishBusinessMenu(businessId, request, key),
+    onPublished: () => {
       setReviewing(false);
       setConfirmed(new Set());
-      void rereadDraft();
-    },
-    onError: (error) => {
-      const found = publishProblemOf(callFailureOf(error));
-      setProblem(found);
-      if (!keepsAttempt(found)) setAttempt(null);
-      if (rereadsDraft(found)) void rereadDraft();
     },
   });
   const { request, missing } = publicationOf(draft, confirmed);
 
   const submit = () => {
     setTried(true);
-    setProblem(null);
-    if (publish.isPending) return;
+    if (publication.pending) return;
+    publication.reset();
     // Said already in the review: the menu needs its profile's name.
     if (draft.profile === null) return;
     if (missing > 0) return;
-    const next = attemptOf(attempt, request, freshKey);
-    setAttempt(next);
-    publish.mutate(next);
+    publication.submit(request);
   };
   const toggle = (key: string) =>
     setConfirmed((current) => {
@@ -194,9 +153,9 @@ export function PublishSection({
           ? t("publish.never")
           : t("publish.version", { version: draft.publishedVersion })}
       </p>
-      {done !== null && (
+      {publication.done !== null && (
         <p className={controls.notice} role="status">
-          {doneText(done)}
+          {doneText(publication.done)}
         </p>
       )}
       {editable && !reviewing && (
@@ -206,8 +165,7 @@ export function PublishSection({
             type="button"
             className={`${controls.primary} ${styles.start}`}
             onClick={() => {
-              setDone(null);
-              setProblem(null);
+              publication.reset();
               setTried(false);
               setReviewing(true);
             }}
@@ -231,19 +189,19 @@ export function PublishSection({
               onToggle={toggle}
             />
           )}
-          {problem !== null && (
+          {publication.problem !== null && (
             <p className={controls.problem} role="alert">
-              {t(PROBLEM_TEXT[problem])}
+              {publishProblemText(publication.problem)}
             </p>
           )}
           <div className={page.actions}>
             <button
               type="button"
               className={controls.primary}
-              disabled={publish.isPending}
+              disabled={publication.pending}
               onClick={submit}
             >
-              {t(publish.isPending ? "publish.submitting" : "publish.submit")}
+              {t(publication.pending ? "publish.submitting" : "publish.submit")}
             </button>
             <button
               type="button"

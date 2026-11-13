@@ -9,6 +9,7 @@ import { useId } from "react";
 import { t } from "../i18n";
 import controls from "../ui/controls.module.css";
 import page from "../ui/page.module.css";
+import type { MediaScope } from "./media-scope";
 import styles from "./MediaSlot.module.css";
 import { useMediaUpload, type UploadStatus } from "./use-media-upload";
 import { menuProblemText, useMenuChange } from "./use-menu-change";
@@ -120,7 +121,7 @@ function UploadLine({
  * (ADR-0038); the draft says when it is ready.
  */
 export function MediaSlot({
-  businessId,
+  scope,
   slot,
   mediaId,
   media,
@@ -128,7 +129,8 @@ export function MediaSlot({
   editable,
   attach,
 }: {
-  businessId: string;
+  /** The business's media or a branch's. */
+  scope: MediaScope;
   slot: SlotKind;
   mediaId: string | null;
   /** The media the draft uses, by id. */
@@ -141,9 +143,9 @@ export function MediaSlot({
 }) {
   const kind = mediaKindOf(slot);
   const inputId = useId();
-  const upload = useMediaUpload({ businessId, kind, attach });
+  const upload = useMediaUpload({ scope, kind, attach });
   const remove = useMenuChange<void, unknown>(
-    businessId,
+    scope.draftKey,
     () => attach(null),
     () => undefined,
   );

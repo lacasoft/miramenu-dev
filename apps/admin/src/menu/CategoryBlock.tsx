@@ -7,6 +7,7 @@ import {
 } from "@miramenu/admin-core";
 import type { Category, CreateDishRequest, Media } from "@miramenu/contracts";
 import { useState } from "react";
+import { keys } from "../app/keys";
 import { t } from "../i18n";
 import controls from "../ui/controls.module.css";
 import page from "../ui/page.module.css";
@@ -52,14 +53,14 @@ export function CategoryBlock({
   };
   const lost = { when: ["gone"] as const, say: onLost };
   const rename = useMenuChange(
-    businessId,
+    keys.menuDraft(businessId),
     (api, name: string) =>
       api.updateCategory(businessId, category.id, { name }),
     (saved: Category) => done(t("menu.categorySaved", { name: saved.name })),
     lost,
   );
   const move = useMenuChange(
-    businessId,
+    keys.menuDraft(businessId),
     async (api, changes: PositionChange[]) => {
       for (const { id, position } of changes)
         await api.updateCategory(businessId, id, { position });
@@ -68,13 +69,13 @@ export function CategoryBlock({
     lost,
   );
   const remove = useMenuChange<void, void>(
-    businessId,
+    keys.menuDraft(businessId),
     (api) => api.removeCategory(businessId, category.id),
     () => done(t("menu.categoryRemoved", { name: category.name })),
     lost,
   );
   const addDish = useMenuChange(
-    businessId,
+    keys.menuDraft(businessId),
     (api, dish: CreateDishRequest) => api.createDish(businessId, dish),
     (created) => done(t("menu.dishCreated", { name: created.name })),
     // Its own category gone: the block goes with it.

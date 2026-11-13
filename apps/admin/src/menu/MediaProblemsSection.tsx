@@ -1,36 +1,40 @@
 import { formatRelativeTime } from "@miramenu/i18n";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import type { AdminApi } from "@miramenu/api-client";
+import type { Media, Page } from "@miramenu/contracts";
+import { useInfiniteQuery, type QueryKey } from "@tanstack/react-query";
 import { useAdminApi } from "../app/api-context";
-import { keys } from "../app/keys";
 import { t } from "../i18n";
 import controls from "../ui/controls.module.css";
 import page from "../ui/page.module.css";
 import slot from "./MediaSlot.module.css";
 
 /**
- * The business's photos and videos that failed or are stalled (design: Cae el worker,
- * "se avisa al admin"), newest first. Nothing to say, nothing shown: each slot of the menu
- * already tells the state of what it uses. Read again whenever a medium of the draft
- * changes state: the worker fails one long after its upload ended.
+ * The photos and videos of the business or of a branch that failed or are stalled
+ * (design: Cae el worker, "se avisa al admin"), newest first. Nothing to say, nothing
+ * shown: each slot of the menu already tells the state of what it uses.
  */
 export function MediaProblemsSection({
-  businessId,
-  states,
+  queryKey,
+  list,
+  only = () => true,
 }: {
-  businessId: string;
-  /** The states of the draft's media (`mediaStatesOf`): a medium that fails is read again. */
-  states: string;
+  /** Holds the states of the draft's media (`mediaStatesOf`): the worker fails a medium
+   * long after its upload ended, and the draft that says so reads this list again. */
+  queryKey: QueryKey;
+  list: (api: AdminApi, cursor: string | undefined) => Promise<Page<Media>>;
+  /** Which of the listed media are this page's: a branch sees its business's too. */
+  only?: (media: Media) => boolean;
 }) {
   const api = useAdminApi();
   const problems = useInfiniteQuery({
-    queryKey: keys.mediaProblemsAt(businessId, states),
-    queryFn: ({ pageParam }) => api.mediaProblems(businessId, pageParam),
+    queryKey,
+    queryFn: ({ pageParam }) => list(api, pageParam),
     initialPageParam: undefined as string | undefined,
     // The list stays while the next one is read, instead of blinking away.
     placeholderData: (previous) => previous,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
   });
-  const items = problems.data?.pages.flatMap((each) => each.items) ?? [];
+  const items = (problems.data?.pages.flatMap((each) => each.items) ?? []).filter(only);
   if (items.length === 0) return null;
   // When the list was read: "hace 3 horas" stays the same between renders.
   const now = problems.dataUpdatedAt;

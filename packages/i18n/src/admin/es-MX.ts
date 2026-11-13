@@ -346,6 +346,63 @@ export const adminMessages = {
     "Fotos y videos que no se pudieron procesar o que llevan demasiado tiempo procesándose.",
   "mediaProblems.item": "{kind} · {when}",
   "mediaProblems.stalled": "Sigue procesándose: puede que el procesador esté detenido.",
+  "branch.menu": "Menú de la sucursal",
+  "branch.menuDescription":
+    "Ajusta precios y disponibilidad del menú base, oculta platillos y agrega los de esta sucursal.",
+  "branch.editMenu": "Editar el menú de la sucursal",
+  "branchMenu.title": "Menú de {name}",
+  "branchMenu.loading": "Cargando el menú de la sucursal",
+  "branchMenu.note":
+    "Ajusta el menú base para esta sucursal y agrega sus platillos propios. Se guarda como borrador: los comensales lo ven cuando publicas.",
+  "branchMenu.categories": "Platillos de la sucursal",
+  "branchMenu.noBase": "El restaurante todavía no tiene categorías en su menú base.",
+  "branchMenu.fromBase": "Del menú base",
+  "branchMenu.own": "Solo en esta sucursal",
+  "branchMenu.basePrice": "Precio base: {price}",
+  "branchMenu.ownPrice": "En esta sucursal: {price}",
+  "branchMenu.soldOut": "Agotado en esta sucursal",
+  "branchMenu.hidden": "Oculto en esta sucursal",
+  "branchMenu.adjust": "Ajustar",
+  "branchMenu.adjustOf": "Ajustar {name}",
+  "branchMenu.clear": "Quitar ajuste",
+  "branchMenu.clearOf": "Quitar el ajuste de {name}",
+  "branchMenu.price": "Precio en esta sucursal (opcional)",
+  "branchMenu.priceHint": "Vacío: el precio base, {price}.",
+  "branchMenu.available": "Disponible en esta sucursal",
+  "branchMenu.hide": "Ocultar en esta sucursal",
+  "branchMenu.adjusted": "Ajuste guardado: {name}.",
+  "branchMenu.cleared": "{name} queda como en el menú base.",
+  "branchMenu.newOwn": "Nuevo platillo de la sucursal",
+  "branchMenu.newOwnIn": "Nuevo platillo de la sucursal en {category}",
+  "branchMenu.markSoldOut": "Marcar agotado",
+  "branchMenu.markSoldOutOf": "Marcar agotado {name}",
+  "branchMenu.markAvailable": "Marcar disponible",
+  "branchMenu.markAvailableOf": "Marcar disponible {name}",
+  "branchMenu.markedSoldOut": "{name} quedó agotado.",
+  "branchMenu.markedAvailable": "{name} quedó disponible.",
+  "branchMenu.removeOwnWarning": "Sale del borrador; sus comensales lo dejan de ver cuando publicas.",
+  "branchMenu.profile": "Perfil de la sucursal",
+  "branchMenu.profileDescription":
+    "Lo que ven sus comensales arriba del menú: el del restaurante, o uno propio de la sucursal.",
+  "branchMenu.usesBusinessProfile": "Usa el perfil del restaurante: {name}.",
+  "branchMenu.noBusinessProfile": "Usa el perfil del restaurante, que todavía no existe.",
+  "branchMenu.ownProfile": "Usar un perfil propio",
+  "branchMenu.backToBusinessProfile": "Usar el del restaurante",
+  "branchMenu.confirmBackToBusiness": "Sí, usar el perfil del restaurante",
+  "branchMenu.profileRemoved": "La sucursal usa el perfil del restaurante.",
+  "branchPublish.never":
+    "La sucursal todavía no publica sus ajustes: sus comensales ven el menú base tal cual.",
+  "branchPublish.version": "Versión publicada de la sucursal: {version}.",
+  "branchPublish.description":
+    "Publicar manda los ajustes y platillos de esta sucursal a sus comensales, sobre el último menú base publicado.",
+  "branchPublish.baseMissing":
+    "El restaurante todavía no publica su menú base: hace falta antes de publicar la sucursal.",
+  "branchPublish.confirm": "Publicar la sucursal",
+  "branchPublish.done": "Listo: publicaste la versión {version} de la sucursal.",
+  "publish.problem.baseNotPublished":
+    "El restaurante todavía no publica su menú base: hace falta antes de publicar la sucursal.",
+  "publish.problem.categoryNotPublished":
+    "Un platillo de la sucursal está en una categoría que el restaurante todavía no publica. Pide que publiquen el menú base o cámbialo de categoría.",
 } as const;
 
 export type AdminMessageKey = keyof typeof adminMessages;

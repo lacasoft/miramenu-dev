@@ -196,6 +196,8 @@ export const branchMenuDraftSchema = z.strictObject({
   profile: profileSchema.nullable(),
   overrides: z.array(overrideSchema),
   dishes: z.array(branchDishSchema),
+  /** The media its own dishes and its own profile use, once each, with their state. */
+  media: z.array(mediaSchema),
 });
 
 // --- Publication ---
@@ -285,6 +287,16 @@ export type CreateDishRequest = z.input<typeof createDishRequestSchema>;
 export type UpdateDishRequest = z.input<typeof updateDishRequestSchema>;
 export type PublishBusinessMenuRequest = z.input<
   typeof publishBusinessMenuRequestSchema
+>;
+export type PutOverrideRequest = z.input<typeof putOverrideRequestSchema>;
+export type CreateBranchDishRequest = z.input<
+  typeof createBranchDishRequestSchema
+>;
+export type UpdateBranchDishRequest = z.input<
+  typeof updateBranchDishRequestSchema
+>;
+export type PublishBranchMenuRequest = z.input<
+  typeof publishBranchMenuRequestSchema
 >;
 export type MenuDish = z.infer<typeof menuDishSchema>;
 export type MenuCategory = z.infer<typeof menuCategorySchema>;

@@ -30,7 +30,7 @@ import {
 } from './draft-rows';
 import { conflict, notFound } from './errors';
 import { assertMediaRef, assertMediaRefs, type MediaScope } from './media-refs';
-import { MediaView } from './media-view';
+import { MediaView, usedMediaIds } from './media-view';
 import {
   baseCategories,
   baseDishes,
@@ -59,18 +59,6 @@ const businessScope = (businessId: string): MediaScope => ({
   businessId,
   branchId: null,
 });
-
-/** The media a draft names: its logo and its dishes' photos and videos, once each. */
-function usedMediaIds(
-  profile: Profile | null,
-  dishes: readonly Pick<Dish, 'imageId' | 'videoId'>[],
-): Set<string> {
-  const ids = [
-    profile?.logoId,
-    ...dishes.flatMap((dish) => [dish.imageId, dish.videoId]),
-  ];
-  return new Set(ids.filter((id): id is string => typeof id === 'string'));
-}
 
 /**
  * The business's base menu draft: categories, dishes and profile. Changes stay in the

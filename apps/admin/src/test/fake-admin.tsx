@@ -8,6 +8,7 @@ import { UploaderContext } from "../app/uploader-context";
 import type { PutFile } from "../platform/upload";
 import { App } from "../app/App";
 import { createQueryClient } from "../app/query-client";
+import { branchMenuApi } from "./fake-branch-menu";
 import { fakePutFile, mediaApi } from "./fake-media";
 import { menuApi } from "./fake-menu";
 import { worldApi, type World } from "./fake-world";
@@ -61,6 +62,7 @@ export function fakeAdminApi({
     ...worldApi(world, () => current),
     ...menuApi(world, () => current),
     ...mediaApi(world, () => current),
+    ...branchMenuApi(world, () => current),
     session: vi.fn(async () => current),
     signIn: vi.fn(async ({ email }: { email: string; password: string }) => {
       const account = accounts[email];

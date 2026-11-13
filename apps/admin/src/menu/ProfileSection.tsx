@@ -7,13 +7,17 @@ import {
   type PutProfileRequest,
   type SocialNetwork,
 } from "@miramenu/contracts";
+import type { AdminApi } from "@miramenu/api-client";
+import type { QueryKey } from "@tanstack/react-query";
 import { useRef, useState, type FormEvent } from "react";
 import { useAdminApi } from "../app/api-context";
+import { keys } from "../app/keys";
 import { fieldText } from "../app/problems";
 import { t } from "../i18n";
 import controls from "../ui/controls.module.css";
 import { Field, SelectField } from "../ui/Field";
 import page from "../ui/page.module.css";
+import { businessMedia } from "./media-scope";
 import { MediaSlot } from "./MediaSlot";
 import styles from "./menu.module.css";
 import { menuProblemText, useMenuChange } from "./use-menu-change";
@@ -31,15 +35,20 @@ const urlText = (url: string) => {
     : fieldText("name", problem);
 };
 
-function ProfileForm({
-  businessId,
+/** A profile's name and links; saving keeps its logo, which the `PUT` would detach. */
+export function ProfileForm({
+  draftKey,
   profile,
   suggestedName,
+  save,
   onDone,
 }: {
-  businessId: string;
+  /** The draft the profile belongs to: the base menu's or a branch's. */
+  draftKey: QueryKey;
+  /** What the form starts from; its logo is kept. */
   profile: Profile | null;
   suggestedName: string;
+  save: (api: AdminApi, profile: PutProfileRequest) => Promise<Profile>;
   onDone: (saved: boolean) => void;
 }) {
   const nextKey = useRef(profile?.socialLinks.length ?? 0);
@@ -48,11 +57,7 @@ function ProfileForm({
     (profile?.socialLinks ?? []).map((link, key) => ({ key, ...link })),
   );
   const [tried, setTried] = useState(false);
-  const { change, problem } = useMenuChange(
-    businessId,
-    (api, value: PutProfileRequest) => api.putProfile(businessId, value),
-    () => onDone(true),
-  );
+  const { change, problem } = useMenuChange(draftKey, save, () => onDone(true));
   const update = (key: number, patch: Partial<LinkRow>) =>
     setLinks((rows) =>
       rows.map((row) => (row.key === key ? { ...row, ...patch } : row)),
@@ -171,7 +176,7 @@ function ProfileForm({
   );
 }
 
-function ProfileFacts({ profile }: { profile: Profile }) {
+export function ProfileFacts({ profile }: { profile: Profile }) {
   return (
     <dl className={page.facts}>
       <div>
@@ -242,7 +247,8 @@ export function ProfileSection({
       )}
       {editing ? (
         <ProfileForm
-          businessId={businessId}
+          draftKey={keys.menuDraft(businessId)}
+          save={(client, value) => client.putProfile(businessId, value)}
           profile={profile}
           suggestedName={suggestedName}
           onDone={(didSave) => {
@@ -256,7 +262,7 @@ export function ProfileSection({
         <>
           <ProfileFacts profile={profile} />
           <MediaSlot
-            businessId={businessId}
+            scope={businessMedia(businessId)}
             slot="logo"
             mediaId={profile.logoId}
             media={media}

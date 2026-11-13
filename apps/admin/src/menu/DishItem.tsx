@@ -10,10 +10,12 @@ import type { Dish, Media, UpdateDishRequest } from "@miramenu/contracts";
 import { formatPrice } from "@miramenu/i18n";
 import { useState } from "react";
 import { useAdminApi } from "../app/api-context";
+import { keys } from "../app/keys";
 import { t } from "../i18n";
 import controls from "../ui/controls.module.css";
 import page from "../ui/page.module.css";
 import { DishForm } from "./DishForm";
+import { businessMedia } from "./media-scope";
 import { MediaSlot } from "./MediaSlot";
 import styles from "./menu.module.css";
 import { MoveButtons } from "./MoveButtons";
@@ -55,7 +57,7 @@ export function DishItem({
   const [action, setAction] = useState<Action>("idle");
   const lost = { when: ["gone"] as const, say: onLost };
   const edit = useMenuChange(
-    businessId,
+    keys.menuDraft(businessId),
     (api, update: UpdateDishRequest) =>
       api.updateDish(businessId, dish.id, update),
     (saved) => {
@@ -65,7 +67,7 @@ export function DishItem({
     lost,
   );
   const move = useMenuChange(
-    businessId,
+    keys.menuDraft(businessId),
     async (api, changes: PositionChange[]) => {
       for (const { id, position } of changes)
         await api.updateDish(businessId, id, { position });
@@ -74,7 +76,7 @@ export function DishItem({
     lost,
   );
   const remove = useMenuChange<void, void>(
-    businessId,
+    keys.menuDraft(businessId),
     (api) => api.removeDish(businessId, dish.id),
     () => onSaid(t("menu.dishRemoved", { name: dish.name })),
     lost,
@@ -112,7 +114,7 @@ export function DishItem({
       )}
       <div className={styles.slots}>
         <MediaSlot
-          businessId={businessId}
+          scope={businessMedia(businessId)}
           slot="photo"
           mediaId={dish.imageId}
           media={media}
@@ -121,7 +123,7 @@ export function DishItem({
           attach={(imageId) => api.updateDish(businessId, dish.id, { imageId })}
         />
         <MediaSlot
-          businessId={businessId}
+          scope={businessMedia(businessId)}
           slot="video"
           mediaId={dish.videoId}
           media={media}

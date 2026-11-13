@@ -6,6 +6,7 @@ import { getQueueToken } from '@nestjs/bullmq';
 import type { INestApplication } from '@nestjs/common';
 import type { TestingModule } from '@nestjs/testing';
 import {
+  branchMenuDraftSchema,
   businessMenuDraftSchema,
   createdMediaSchema,
   type Media,
@@ -310,6 +311,20 @@ describe('Catalog media: upload and worker (e2e)', () => {
           sizeBytes: 10,
         })
         .expect(403);
+
+      // Its draft carries the media of its own dishes; a sibling's draft does not.
+      const draftOf = async (branchId: string) =>
+        branchMenuDraftSchema.parse(
+          (
+            await owner
+              .send('get', `${branchScope(branchId)}/menu-draft`)
+              .expect(200)
+          ).body,
+        );
+      expect((await draftOf(branch1)).media.map((media) => media.id)).toEqual([
+        own.id,
+      ]);
+      expect((await draftOf(branch2)).media).toEqual([]);
     });
 
     it('lists media stalled past the limit as a problem (design: Cae el worker)', async () => {

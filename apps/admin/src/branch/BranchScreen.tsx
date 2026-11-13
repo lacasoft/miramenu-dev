@@ -121,6 +121,15 @@ export function BranchScreen({ actor, branchId }: { actor: SessionActor; branchI
       <div className={page.columns}>
         <BranchDetails branch={branch.data} editable={canAdminister(actor, branch.data.businessId)} />
         <QrCard branch={branch.data} businessName={business.data?.name} />
+        <section className={`${controls.card} ${page.section}`} aria-labelledby="branch-menu">
+          <h2 id="branch-menu" className={page.sectionTitle}>
+            {t("branch.menu")}
+          </h2>
+          <p className={page.hint}>{t("branch.menuDescription")}</p>
+          <AppLink className={controls.secondary} href={hrefOf({ screen: "branchMenu", branchId: branch.data.id })}>
+            {t("branch.editMenu")}
+          </AppLink>
+        </section>
       </div>
     </main>
   );
