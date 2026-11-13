@@ -12,6 +12,7 @@ import type {
 } from "@miramenu/contracts";
 import { vi } from "vitest";
 import { httpError, id } from "./fake-admin";
+import type { MenuState } from "./fake-menu";
 
 /** Businesses, branches and people in memory, answering as the API does. */
 export interface World {
@@ -20,6 +21,8 @@ export interface World {
   users: BusinessUser[];
   /** False: the mail provider fails, invitations go out unsent. */
   mailWorks: boolean;
+  /** Each business's base menu; one without an entry has an empty draft. */
+  menus?: Record<string, MenuState>;
 }
 
 export const branchOf = (n: number, businessId: string, name: string, slug: string, subdomain: string | null = null): Branch => ({
@@ -43,8 +46,8 @@ export const userOf = (n: number, name: string, roles: BusinessUser["roles"], st
 let next = 500;
 const fresh = () => id((next += 1));
 
-/** The calls of businesses, branches, QR and team over a world, as the given person. */
-export function worldApi(world: World, actor: () => SessionActor | null) {
+/** Who reaches what in a world, answering 401, 404 and 403 as the API does (ADR-0032). */
+export function accessIn(world: World, actor: () => SessionActor | null) {
   const visible = (businessId: string) => {
     const who = actor();
     if (who === null) throw httpError(401, "UNAUTHENTICATED");
@@ -62,6 +65,12 @@ export function worldApi(world: World, actor: () => SessionActor | null) {
     visible(businessId);
     return business;
   };
+  return { visible, administer, businessAt };
+}
+
+/** The calls of businesses, branches, QR and team over a world, as the given person. */
+export function worldApi(world: World, actor: () => SessionActor | null) {
+  const { visible, administer, businessAt } = accessIn(world, actor);
   const branchAt = (branchId: string) => {
     const branch = world.branches.find((each) => each.id === branchId);
     if (branch === undefined) throw httpError(404, "NOT_FOUND");

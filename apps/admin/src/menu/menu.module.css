@@ -1,0 +1,116 @@
+/* The base menu: publication and profile beside the categories on desktop, stacked in
+   reading order on a phone. */
+.layout {
+  display: grid;
+  gap: var(--space-16);
+  align-items: start;
+}
+
+@media (min-width: 64rem) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  }
+}
+
+.aside {
+  display: grid;
+  gap: var(--space-16);
+}
+
+.start {
+  justify-self: start;
+}
+
+/* A group of fields, like one social link or the conflicts to confirm. */
+.group {
+  display: grid;
+  gap: var(--space-12);
+  margin: 0;
+  padding: var(--space-16);
+  border: 1px solid var(--dashboard-muted);
+  border-radius: var(--radius-field);
+}
+
+.legend {
+  padding: 0 var(--space-4);
+  font-weight: 600;
+}
+
+/* A checkbox with its text: the whole row is the target, at least 48 px tall. */
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-12);
+  min-height: var(--touch-target);
+  cursor: pointer;
+}
+
+.check input {
+  flex: none;
+  width: var(--space-24);
+  height: var(--space-24);
+  margin: var(--space-12) 0 0;
+  accent-color: var(--dashboard-ink);
+}
+
+.check span {
+  padding-top: var(--space-12);
+}
+
+.categories {
+  display: grid;
+  gap: var(--space-24);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A category: a thin rule on top separates it from the one before. */
+.category {
+  display: grid;
+  gap: var(--space-12);
+  padding-top: var(--space-16);
+  border-top: 1px solid var(--dashboard-grid);
+}
+
+.category:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.dishHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+
+.dishName {
+  margin: 0;
+  font-size: var(--text-body);
+  line-height: var(--text-body-line-height);
+  font-weight: 600;
+}
+
+.price {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The conflicts to confirm: their long legend reads as a title, without a box to cross. */
+.confirmations {
+  display: grid;
+  gap: var(--space-12);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.confirmations > legend {
+  margin-bottom: var(--space-12);
+  padding: 0;
+  font-weight: 600;
+}

@@ -11,7 +11,7 @@ import page from "../ui/page.module.css";
 import { BranchesSection } from "./BranchesSection";
 import { BusinessDetails } from "./BusinessDetails";
 
-/** A business: its data, its branches and, for its admin, the way to its team. */
+/** A business: its data, its branches, its menu and, for its admin, the way to its team. */
 export function BusinessScreen({ actor, businessId }: { actor: SessionActor; businessId: string }) {
   const api = useAdminApi();
   const business = useQuery({
@@ -29,6 +29,15 @@ export function BusinessScreen({ actor, businessId }: { actor: SessionActor; bus
       <div className={page.columns}>
         <BusinessDetails business={business.data} editable={administer} />
         <BranchesSection businessId={businessId} editable={administer} />
+        <section className={`${controls.card} ${page.section}`} aria-labelledby="business-menu">
+          <h2 id="business-menu" className={page.sectionTitle}>
+            {t("business.menu")}
+          </h2>
+          <p className={page.hint}>{t("business.menuDescription")}</p>
+          <AppLink className={controls.secondary} href={hrefOf({ screen: "menu", businessId })}>
+            {t(administer ? "business.openMenu" : "business.viewMenu")}
+          </AppLink>
+        </section>
         {administer && (
           <section className={`${controls.card} ${page.section}`} aria-labelledby="business-team">
             <h2 id="business-team" className={page.sectionTitle}>
