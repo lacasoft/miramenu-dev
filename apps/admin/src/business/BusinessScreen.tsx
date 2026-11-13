@@ -9,6 +9,7 @@ import { AppLink } from "../ui/AppLink";
 import controls from "../ui/controls.module.css";
 import page from "../ui/page.module.css";
 import { BranchesSection } from "./BranchesSection";
+import { ModerationCard } from "../moderation/ModerationCard";
 import { BusinessDetails } from "./BusinessDetails";
 
 /** A business: its data, its branches, its menu and, for its admin, the way to its team. */
@@ -38,6 +39,13 @@ export function BusinessScreen({ actor, businessId }: { actor: SessionActor; bus
             {t(administer ? "business.openMenu" : "business.viewMenu")}
           </AppLink>
         </section>
+        {administer && (
+          <ModerationCard
+            queueKey={keys.moderation("business", businessId)}
+            load={(client) => client.businessModeration(businessId)}
+            href={hrefOf({ screen: "businessModeration", businessId })}
+          />
+        )}
         {administer && (
           <section className={`${controls.card} ${page.section}`} aria-labelledby="business-team">
             <h2 id="business-team" className={page.sectionTitle}>

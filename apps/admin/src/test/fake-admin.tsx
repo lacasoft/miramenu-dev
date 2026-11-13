@@ -11,6 +11,7 @@ import { createQueryClient } from "../app/query-client";
 import { branchMenuApi } from "./fake-branch-menu";
 import { fakePutFile, mediaApi } from "./fake-media";
 import { menuApi } from "./fake-menu";
+import { moderationApi } from "./fake-moderation";
 import { worldApi, type World } from "./fake-world";
 
 export const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -63,6 +64,7 @@ export function fakeAdminApi({
     ...menuApi(world, () => current),
     ...mediaApi(world, () => current),
     ...branchMenuApi(world, () => current),
+    ...moderationApi(world, () => current),
     session: vi.fn(async () => current),
     signIn: vi.fn(async ({ email }: { email: string; password: string }) => {
       const account = accounts[email];
