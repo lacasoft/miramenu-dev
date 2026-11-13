@@ -12,6 +12,7 @@ import type {
 } from "@miramenu/contracts";
 import { vi } from "vitest";
 import { httpError, id } from "./fake-admin";
+import type { BranchMenuState } from "./fake-branch-menu";
 import type { MenuState } from "./fake-menu";
 
 /** Businesses, branches and people in memory, answering as the API does. */
@@ -23,6 +24,8 @@ export interface World {
   mailWorks: boolean;
   /** Each business's base menu; one without an entry has an empty draft. */
   menus?: Record<string, MenuState>;
+  /** Each branch's draft and publications; one without an entry has adjusted nothing. */
+  branchMenus?: Record<string, BranchMenuState>;
 }
 
 export const branchOf = (n: number, businessId: string, name: string, slug: string, subdomain: string | null = null): Branch => ({
@@ -65,12 +68,7 @@ export function accessIn(world: World, actor: () => SessionActor | null) {
     visible(businessId);
     return business;
   };
-  return { visible, administer, businessAt };
-}
-
-/** The calls of businesses, branches, QR and team over a world, as the given person. */
-export function worldApi(world: World, actor: () => SessionActor | null) {
-  const { visible, administer, businessAt } = accessIn(world, actor);
+  /** A branch its business's admin or its own admin reaches; anyone else gets a 404. */
   const branchAt = (branchId: string) => {
     const branch = world.branches.find((each) => each.id === branchId);
     if (branch === undefined) throw httpError(404, "NOT_FOUND");
@@ -78,6 +76,12 @@ export function worldApi(world: World, actor: () => SessionActor | null) {
     if (!owner && !branchIds.includes(branchId)) throw httpError(404, "NOT_FOUND");
     return branch;
   };
+  return { visible, administer, businessAt, branchAt };
+}
+
+/** The calls of businesses, branches, QR and team over a world, as the given person. */
+export function worldApi(world: World, actor: () => SessionActor | null) {
+  const { visible, administer, businessAt, branchAt } = accessIn(world, actor);
   const subdomainTaken = (subdomain: string, except?: string) =>
     world.businesses.some((each) => each.subdomain === subdomain && each.id !== except) ||
     world.branches.some((each) => each.subdomain === subdomain && each.id !== except);

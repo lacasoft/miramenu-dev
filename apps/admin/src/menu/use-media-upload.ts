@@ -14,8 +14,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { useAdminApi } from "../app/api-context";
 import { callFailureOf } from "../app/failures";
-import { keys } from "../app/keys";
 import { usePutFile } from "../app/uploader-context";
+import type { MediaScope } from "./media-scope";
 
 export type UploadStatus =
   | { kind: "idle" }
@@ -42,11 +42,12 @@ function createdOf(progress: UploadProgress) {
  * failure goes on from where it stopped instead of uploading everything again.
  */
 export function useMediaUpload({
-  businessId,
+  scope,
   kind,
   attach,
 }: {
-  businessId: string;
+  /** The business's media or a branch's. */
+  scope: MediaScope;
   kind: MediaKind;
   /** Names the medium in its dish or profile. */
   attach: (mediaId: string) => Promise<unknown>;
@@ -64,10 +65,7 @@ export function useMediaUpload({
   ): Promise<UploadProgress> => {
     switch (step) {
       case "create": {
-        const created = await api.createMedia(
-          businessId,
-          mediaRequestOf(kind, file),
-        );
+        const created = await scope.create(api, mediaRequestOf(kind, file));
         return {
           created: { mediaId: created.media.id, upload: created.upload },
           uploaded: false,
@@ -80,7 +78,7 @@ export function useMediaUpload({
         );
         return { ...progress, uploaded: true };
       case "complete":
-        await api.completeMedia(businessId, createdOf(progress).mediaId);
+        await scope.complete(api, createdOf(progress).mediaId);
         return { ...progress, completed: true };
       case "attach":
         await attach(createdOf(progress).mediaId);
@@ -118,10 +116,8 @@ export function useMediaUpload({
     } finally {
       running.current = false;
       // The draft now names the medium, still processing; the problems may have changed.
-      void client.invalidateQueries({ queryKey: keys.menuDraft(businessId) });
-      void client.invalidateQueries({
-        queryKey: keys.mediaProblems(businessId),
-      });
+      void client.invalidateQueries({ queryKey: scope.draftKey });
+      void client.invalidateQueries({ queryKey: scope.problemsKey });
     }
   };
 

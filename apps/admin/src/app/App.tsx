@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { InvitationScreen } from "../auth/InvitationScreen";
 import { SignInScreen } from "../auth/SignInScreen";
 import { BranchScreen } from "../branch/BranchScreen";
+import { BranchMenuScreen } from "../branch-menu/BranchMenuScreen";
 import { BusinessScreen } from "../business/BusinessScreen";
 import { NewBusinessScreen } from "../business/NewBusinessScreen";
 import { TeamScreen } from "../team/TeamScreen";
@@ -53,6 +54,8 @@ function screenOf(route: AdminRoute, actor: SessionActor): ReactNode {
       return <MenuScreen key={route.businessId} actor={actor} businessId={route.businessId} />;
     case "branch":
       return <BranchScreen key={route.branchId} actor={actor} branchId={route.branchId} />;
+    case "branchMenu":
+      return <BranchMenuScreen key={route.branchId} actor={actor} branchId={route.branchId} />;
     default:
       return <StatusScreen kind="notFound" inShell action={toHome} />;
   }

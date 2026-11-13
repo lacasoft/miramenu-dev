@@ -1,6 +1,7 @@
 import { menuSectionsOf } from "@miramenu/admin-core";
 import type { BusinessMenuDraft, Category } from "@miramenu/contracts";
 import { useState } from "react";
+import { keys } from "../app/keys";
 import { t } from "../i18n";
 import controls from "../ui/controls.module.css";
 import page from "../ui/page.module.css";
@@ -27,7 +28,7 @@ export function CategoriesSection({
   const notice = (text: string) => setSaid({ text, lost: false });
   const lost = (text: string) => setSaid({ text, lost: true });
   const create = useMenuChange(
-    businessId,
+    keys.menuDraft(businessId),
     (api, name: string) => api.createCategory(businessId, { name }),
     (category: Category) => {
       setCreating(false);

@@ -1,10 +1,9 @@
 import { menuProblemOf, type MenuProblem } from "@miramenu/admin-core";
 import type { AdminApi } from "@miramenu/api-client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, type QueryKey } from "@tanstack/react-query";
 import { useState } from "react";
 import { useAdminApi } from "../app/api-context";
 import { callFailureOf } from "../app/failures";
-import { keys } from "../app/keys";
 import { t } from "../i18n";
 
 const PROBLEM_TEXT = {
@@ -21,13 +20,14 @@ export const menuProblemText = (problem: MenuProblem | null): string | null =>
   problem === null ? null : t(PROBLEM_TEXT[problem]);
 
 /**
- * One change to the base menu's draft. Whatever the API answers, the draft is read again:
+ * One change to a draft, of the base menu or of a branch. Whatever the API answers, the draft is read again:
  * each change bumps its version and may add or clear conflicts with the branches, and a
  * change refused because something was gone shows the menu as it now is. `onLost` hears
  * that: the item goes away with its own message, so its list must say it.
  */
 export function useMenuChange<Values, Result>(
-  businessId: string,
+  /** The draft this change touches: the base menu's or a branch's. */
+  draftKey: QueryKey,
   run: (api: AdminApi, values: Values) => Promise<Result>,
   onDone: (result: Result, values: Values) => void,
   onLost?: { when: readonly MenuProblem[]; say: (text: string) => void },
@@ -45,7 +45,7 @@ export function useMenuChange<Values, Result>(
       if (onLost?.when.includes(found)) onLost.say(t(PROBLEM_TEXT[found]));
     },
     onSettled: () =>
-      client.invalidateQueries({ queryKey: keys.menuDraft(businessId) }),
+      client.invalidateQueries({ queryKey: draftKey }),
   });
   return { change, problem, clearProblem: () => setProblem(null) };
 }
