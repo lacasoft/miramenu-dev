@@ -40,6 +40,17 @@ export function BusinessScreen({ actor, businessId }: { actor: SessionActor; bus
           </AppLink>
         </section>
         {administer && (
+          <section className={`${controls.card} ${page.section}`} aria-labelledby="dashboard-card">
+            <h2 id="dashboard-card" className={page.sectionTitle}>
+              {t("dashboard.card")}
+            </h2>
+            <p className={page.hint}>{t("dashboard.cardDescription")}</p>
+            <AppLink className={controls.secondary} href={hrefOf({ screen: "businessDashboard", businessId })}>
+              {t("dashboard.open")}
+            </AppLink>
+          </section>
+        )}
+        {administer && (
           <ModerationCard
             queueKey={keys.moderation("business", businessId)}
             load={(client) => client.businessModeration(businessId)}

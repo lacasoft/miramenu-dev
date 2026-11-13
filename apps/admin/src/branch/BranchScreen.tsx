@@ -123,6 +123,17 @@ export function BranchScreen({ actor, branchId }: { actor: SessionActor; branchI
         <BranchDetails branch={branch.data} editable={canAdminister(actor, branch.data.businessId)} />
         <QrCard branch={branch.data} businessName={business.data?.name} />
         {canOperateBranch(actor, branch.data) && (
+          <section className={`${controls.card} ${page.section}`} aria-labelledby="dashboard-card">
+            <h2 id="dashboard-card" className={page.sectionTitle}>
+              {t("dashboard.card")}
+            </h2>
+            <p className={page.hint}>{t("dashboard.cardDescription")}</p>
+            <AppLink className={controls.secondary} href={hrefOf({ screen: "branchDashboard", branchId: branch.data.id })}>
+              {t("dashboard.open")}
+            </AppLink>
+          </section>
+        )}
+        {canOperateBranch(actor, branch.data) && (
           <ModerationCard
             queueKey={keys.moderation("branch", branch.data.id)}
             load={(client) => client.branchModeration(branch.data.id)}

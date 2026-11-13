@@ -1,0 +1,364 @@
+/* The dashboard's composition (design system): four equal columns on desktop, one on a
+   phone, the same reading order. Solid white cards on the mineral page, no glass. */
+.grid {
+  display: grid;
+  gap: var(--space-16);
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  transition: opacity var(--duration-brief) var(--ease-standard);
+}
+
+@media (min-width: 64rem) {
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .wide {
+    grid-column: span 2;
+  }
+}
+
+@media (min-width: 40rem) and (max-width: 63.99rem) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .wide {
+    grid-column: 1 / -1;
+  }
+}
+
+.full {
+  grid-column: 1 / -1;
+}
+
+/* While the new period loads, the figures stay, dimmed: no skeleton, no jump. */
+.stale {
+  opacity: 0.55;
+}
+
+.card {
+  display: grid;
+  gap: var(--space-12);
+  align-content: start;
+  min-width: 0;
+  padding: var(--space-24);
+  border-radius: var(--radius-module);
+  background-color: var(--dashboard-card);
+  color: var(--dashboard-ink);
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: var(--text-card);
+  line-height: var(--text-card-line-height);
+}
+
+.kpi {
+  gap: var(--space-8);
+}
+
+.kpiLabel {
+  margin: 0;
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+  font-weight: 600;
+}
+
+/* Proportional figures at display size (dataviz: tabular only in columns). */
+.kpiValue {
+  margin: 0;
+  font-size: var(--text-screen-title);
+  line-height: var(--text-screen-title-line-height);
+  font-weight: 700;
+}
+
+/* The one accent card: the tokens' gradient and white text (5.08:1 to 7.57:1). */
+.accent {
+  background-color: transparent;
+  color: var(--dashboard-accent-foreground);
+}
+
+.delta {
+  justify-self: start;
+  margin: 0;
+  padding: var(--space-4) var(--space-12);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+  font-weight: 600;
+}
+
+/* Whether the move is good news: its pair, and its words say which way. */
+.good {
+  background-color: var(--dashboard-positive);
+  color: var(--dashboard-positive-text);
+}
+
+.bad {
+  background-color: var(--dashboard-negative);
+  color: var(--dashboard-negative-text);
+}
+
+.neutral {
+  background-color: var(--dashboard-background);
+  color: var(--dashboard-ink);
+}
+
+.hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-16);
+}
+
+.filters {
+  display: grid;
+  gap: var(--space-12);
+}
+
+.custom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-12);
+}
+
+.scope {
+  min-width: 14rem;
+}
+
+.periodLabel {
+  margin: 0;
+  color: var(--dashboard-muted);
+}
+
+.state {
+  display: grid;
+  gap: var(--space-12);
+  justify-items: start;
+}
+
+.hint {
+  margin: 0;
+  color: var(--dashboard-muted);
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+}
+
+/* The trend: one series in the accent hue, a 10% wash under its 2px line, hairline grid. */
+.chart {
+  display: grid;
+  gap: var(--space-8);
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.svg:focus-visible {
+  outline: 3px solid var(--dashboard-ring);
+  outline-offset: 4px;
+  border-radius: var(--radius-field);
+}
+
+.rule {
+  stroke: var(--dashboard-grid);
+  stroke-width: 1;
+}
+
+.tick {
+  fill: var(--dashboard-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.area {
+  fill: var(--dashboard-accent-from);
+  fill-opacity: 0.1;
+}
+
+.line {
+  fill: none;
+  stroke: var(--dashboard-accent-from);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.crosshair {
+  stroke: var(--dashboard-muted);
+  stroke-width: 1;
+}
+
+/* The end and active dots: 8px, with a 2px ring of the card around them. */
+.dot {
+  fill: var(--dashboard-accent-from);
+  stroke: var(--dashboard-card);
+  stroke-width: 2;
+}
+
+.readout {
+  min-height: var(--text-body-line-height);
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.table summary {
+  min-height: var(--touch-target);
+  display: flex;
+  align-items: center;
+  color: var(--dashboard-ink);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.table th,
+.table td {
+  padding: var(--space-4) var(--space-8);
+  border-bottom: 1px solid var(--dashboard-grid);
+  text-align: left;
+}
+
+/* The gauge (design system): fill #577564 on its track, the percentage in the middle. */
+.gauge {
+  display: grid;
+  gap: var(--space-8);
+  margin: 0;
+  justify-items: center;
+}
+
+.gauge svg {
+  width: 100%;
+  max-width: 14rem;
+}
+
+.gaugeTrack,
+.gaugeFill {
+  fill: none;
+  stroke-width: 12;
+  stroke-linecap: round;
+}
+
+.gaugeTrack {
+  stroke: var(--dashboard-gauge-track);
+}
+
+.gaugeFill {
+  stroke: var(--dashboard-accent-from);
+}
+
+.gaugeValue {
+  fill: var(--dashboard-ink);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+/* The ranking: bars from one baseline, 12px thick with 4px rounded ends, value at the tip. */
+.ranking {
+  display: grid;
+  gap: var(--space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ranking li {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.rankName {
+  overflow-wrap: anywhere;
+}
+
+.rankBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.bar {
+  height: 12px;
+  min-width: 4px;
+  border-radius: 0 4px 4px 0;
+  background-color: var(--dashboard-accent-from);
+}
+
+.rankValue {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Every dish: a table on desktop; on a phone each row stacks as a card with its labels. */
+.dishes {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.dishes th,
+.dishes td {
+  padding: var(--space-8) var(--space-12);
+  border-bottom: 1px solid var(--dashboard-grid);
+  text-align: right;
+}
+
+.dishes th:first-child {
+  text-align: left;
+}
+
+.dishes thead th {
+  color: var(--dashboard-muted);
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+}
+
+@media (max-width: 47.99rem) {
+  .dishes thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .dishes tr {
+    display: grid;
+    gap: var(--space-4);
+    padding: var(--space-12) 0;
+    border-bottom: 1px solid var(--dashboard-grid);
+  }
+
+  .dishes th,
+  .dishes td {
+    display: flex;
+    justify-content: space-between;
+    padding: 0;
+    border: 0;
+    text-align: left;
+  }
+
+  .dishes td::before {
+    content: attr(data-label);
+    color: var(--dashboard-muted);
+  }
+}
