@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { menuImageSchema, menuVideoSchema } from "./media.ts";
+import { mediaSchema, menuImageSchema, menuVideoSchema } from "./media.ts";
 
 /**
  * Bounds that keep a menu one small document (design: ~100 KB per menu), so drafts and
@@ -182,6 +182,11 @@ export const businessMenuDraftSchema = z.strictObject({
   dishes: z.array(dishSchema),
   /** What publishing this draft would overwrite; publishing needs them confirmed. */
   conflicts: z.array(publicationConflictSchema),
+  /**
+   * The media the draft uses (its dishes' photos and videos and its logo), once each,
+   * with their state: whether each is still processing, ready or failed.
+   */
+  media: z.array(mediaSchema),
 });
 
 export const branchMenuDraftSchema = z.strictObject({

@@ -6,6 +6,7 @@ import { getQueueToken } from '@nestjs/bullmq';
 import type { INestApplication } from '@nestjs/common';
 import type { TestingModule } from '@nestjs/testing';
 import {
+  businessMenuDraftSchema,
   createdMediaSchema,
   type Media,
   mediaSchema,
@@ -154,6 +155,59 @@ describe('Catalog media: upload and worker (e2e)', () => {
         expect(mediaSchema.parse(confirmed.body).status).toBe('processing');
       }
       files.photoId = created.media.id;
+    });
+
+    it('shows in the base draft the media it uses while they process, and none it does not use', async () => {
+      const logo = await uploadMedia(
+        owner,
+        businessScope(),
+        files.small,
+        'image',
+      );
+      const unused = await uploadMedia(
+        owner,
+        businessScope(),
+        files.small,
+        'image',
+      );
+      for (const imageId of [files.photoId, files.photoId]) {
+        await owner
+          .send('post', `${businessScope()}/dishes`, {
+            categoryId: category,
+            name: 'Con foto',
+            priceCents: 100,
+            currency: 'MXN',
+            imageId,
+          })
+          .expect(201);
+      }
+      await owner
+        .send('put', `${businessScope()}/profile`, {
+          ...PROFILE,
+          logoId: logo.id,
+        })
+        .expect(200);
+
+      const draft = businessMenuDraftSchema.parse(
+        (await owner.send('get', `${businessScope()}/menu-draft`).expect(200))
+          .body,
+      );
+      // Two dishes with the same photo list it once; the unused upload is not the draft's.
+      expect(draft.media.map((media) => media.id).sort()).toEqual(
+        [files.photoId, logo.id].sort(),
+      );
+      expect(
+        draft.media.find((media) => media.id === files.photoId),
+      ).toMatchObject({
+        kind: 'image',
+        status: 'processing',
+        stalled: false,
+        image: null,
+      });
+      expect(draft.media.map((media) => media.id)).not.toContain(unused.id);
+      await owner
+        .send('put', `${businessScope()}/profile`, PROFILE)
+        .expect(200);
     });
 
     it('fails an upload that is not what was signed, and deletes it', async () => {
@@ -315,6 +369,35 @@ describe('Catalog media: upload and worker (e2e)', () => {
       const response = await fetch(video.video?.url ?? '');
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toBe('video/mp4');
+    });
+
+    it('shows in the base draft the media it uses once ready, to its branch admins too', async () => {
+      await owner
+        .send('post', `${businessScope()}/dishes`, {
+          categoryId: category,
+          name: 'Con video',
+          priceCents: 100,
+          currency: 'MXN',
+          imageId: files.photoId,
+          videoId: files.videoId,
+        })
+        .expect(201);
+      for (const reader of [owner, branchAdmin]) {
+        const draft = businessMenuDraftSchema.parse(
+          (
+            await reader
+              .send('get', `${businessScope()}/menu-draft`)
+              .expect(200)
+          ).body,
+        );
+        const byId = new Map(draft.media.map((media) => [media.id, media]));
+        expect([...byId.keys()].sort()).toEqual(
+          [files.photoId, files.videoId].sort(),
+        );
+        expect(byId.get(files.photoId)?.image?.sources.length).toBe(3);
+        expect(byId.get(files.videoId)).toMatchObject({ status: 'ready' });
+        expect(byId.get(files.videoId)?.video?.poster.sources.length).toBe(2);
+      }
     });
 
     it('fails an unreadable file and a video over the limit, without retrying', async () => {

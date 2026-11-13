@@ -30,6 +30,7 @@ import {
 } from './draft-rows';
 import { conflict, notFound } from './errors';
 import { assertMediaRef, assertMediaRefs, type MediaScope } from './media-refs';
+import { MediaView } from './media-view';
 import {
   baseCategories,
   baseDishes,
@@ -59,6 +60,18 @@ const businessScope = (businessId: string): MediaScope => ({
   branchId: null,
 });
 
+/** The media a draft names: its logo and its dishes' photos and videos, once each. */
+function usedMediaIds(
+  profile: Profile | null,
+  dishes: readonly Pick<Dish, 'imageId' | 'videoId'>[],
+): Set<string> {
+  const ids = [
+    profile?.logoId,
+    ...dishes.flatMap((dish) => [dish.imageId, dish.videoId]),
+  ];
+  return new Set(ids.filter((id): id is string => typeof id === 'string'));
+}
+
 /**
  * The business's base menu draft: categories, dishes and profile. Changes stay in the
  * draft until the business publishes (design: "Los cambios del CMS se guardan como
@@ -71,6 +84,7 @@ export class BaseMenuService {
     @InjectDataSource('catalog') private readonly dataSource: DataSource,
     private readonly access: AccessControl,
     private readonly state: DraftState,
+    private readonly mediaView: MediaView,
   ) {}
 
   /** Read in one snapshot, so the draft version matches the content it comes with. */
@@ -94,16 +108,24 @@ export class BaseMenuService {
           categories: [],
           dishes: [],
           conflicts: [],
+          media: [],
         };
       }
       const dishes = await baseDishes(manager, businessId);
+      const live = liveDishes(dishes);
+      const profile = await profileOf(manager, businessId, null);
       return {
         draftVersion: state.draft_version,
         publishedVersion: state.published_version,
-        profile: await profileOf(manager, businessId, null),
+        profile,
         categories: await baseCategories(manager, businessId),
-        dishes: liveDishes(dishes),
+        dishes: live,
         conflicts: (await scanConflicts(manager, businessId, dishes)).conflicts,
+        media: await this.mediaView.among(
+          manager,
+          businessId,
+          usedMediaIds(profile, live),
+        ),
       };
     });
   }

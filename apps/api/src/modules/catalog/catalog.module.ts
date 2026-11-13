@@ -9,6 +9,7 @@ import { BranchMenuService } from './application/branch-menu.service';
 import { DraftState } from './application/draft-state';
 import { MediaQueue, MEDIA_QUEUE } from './application/media-queue';
 import { MediaService } from './application/media.service';
+import { MediaView } from './application/media-view';
 import { MenuDishes } from './application/menu-dishes';
 import { PublicationService } from './application/publication.service';
 import { PublishedMenuService } from './application/published-menu.service';
@@ -42,6 +43,7 @@ import { PublicationController } from './http/publication.controller';
     BaseMenuService,
     BranchMenuService,
     MediaService,
+    MediaView,
     MediaQueue,
     MenuDishes,
     PublicationService,
