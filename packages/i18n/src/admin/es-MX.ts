@@ -403,6 +403,39 @@ export const adminMessages = {
     "El restaurante todavía no publica su menú base: hace falta antes de publicar la sucursal.",
   "publish.problem.categoryNotPublished":
     "Un platillo de la sucursal está en una categoría que el restaurante todavía no publica. Pide que publiquen el menú base o cámbialo de categoría.",
+  "moderation.card": "Comentarios",
+  "moderation.cardDescription":
+    "Los comentarios esperan aquí hasta que alguien los aprueba: los comensales solo ven los aprobados.",
+  "moderation.open": "Moderar comentarios",
+  "moderation.overdue.one": "1 comentario está atrasado: lleva más de un día esperando.",
+  "moderation.overdue.other": "{count} comentarios están atrasados: llevan más de un día esperando.",
+  "moderation.title": "Comentarios de {name}",
+  "moderation.note":
+    "Del más antiguo al más nuevo. Al aprobar uno, lo ven los comensales; al rechazarlo, solo su autor sabe que no pasó.",
+  "moderation.loading": "Cargando los comentarios",
+  "moderation.all": "Todos",
+  "moderation.onlyOverdue": "Solo atrasados",
+  "moderation.filter": "Qué comentarios ver",
+  "moderation.empty": "No hay comentarios esperando.",
+  "moderation.emptyOverdue": "No hay comentarios atrasados.",
+  "moderation.failed": "No pudimos cargar los comentarios.",
+  "moderation.about": "Sobre {dish}",
+  "moderation.aboutGone": "Sobre un platillo que ya no está en el menú",
+  "moderation.byWhen": "{author} · {when}",
+  "moderation.someone": "alguien",
+  "moderation.atBranch": "En {branch}",
+  "moderation.late": "Atrasado",
+  "moderation.approve": "Aprobar",
+  "moderation.approveOf": "Aprobar el comentario de {author}",
+  "moderation.reject": "Rechazar",
+  "moderation.rejectOf": "Rechazar el comentario de {author}",
+  "moderation.approved": "Aprobado: el comentario de {author} ya lo ven los comensales.",
+  "moderation.rejected": "Rechazado: el comentario de {author} no se publica.",
+  "moderation.problem.changed":
+    "Ese comentario cambió: su autor lo editó o alguien más lo moderó. Ya ves cómo está ahora.",
+  "moderation.problem.gone": "Ese comentario ya no existe: su autor lo borró.",
+  "moderation.problem.forbidden": "Tu rol no permite moderar estos comentarios.",
+  "moderation.problem.unavailable": "No pudimos guardar tu decisión. Intenta de nuevo.",
 } as const;
 
 export type AdminMessageKey = keyof typeof adminMessages;
