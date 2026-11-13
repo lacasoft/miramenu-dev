@@ -1,8 +1,10 @@
-import { accessOf, type BusinessAccess } from "@miramenu/admin-core";
+import { accessOf, canCreateBusiness, hrefOf, type BusinessAccess } from "@miramenu/admin-core";
 import type { SessionActor } from "@miramenu/contracts";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useAdminApi } from "../app/api-context";
+import { keys } from "../app/keys";
 import { t } from "../i18n";
+import { AppLink } from "../ui/AppLink";
 import controls from "../ui/controls.module.css";
 import styles from "./HomeScreen.module.css";
 
@@ -19,7 +21,7 @@ function accessText(access: BusinessAccess | undefined): string | null {
 export function HomeScreen({ actor }: { actor: SessionActor }) {
   const api = useAdminApi();
   const businesses = useInfiniteQuery({
-    queryKey: ["admin-businesses"],
+    queryKey: keys.businesses,
     queryFn: ({ pageParam }) => api.businesses(pageParam),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
@@ -29,7 +31,14 @@ export function HomeScreen({ actor }: { actor: SessionActor }) {
 
   return (
     <main className={styles.home} aria-busy={businesses.isPending || undefined}>
-      <h1 className={styles.title}>{t("home.title")}</h1>
+      <div className={styles.heading}>
+        <h1 className={styles.title}>{t("home.title")}</h1>
+        {canCreateBusiness(actor) && (
+          <AppLink className={controls.primary} href={hrefOf({ screen: "newBusiness" })}>
+            {t("home.newBusiness")}
+          </AppLink>
+        )}
+      </div>
       {actor.isSuperadmin && <p className={styles.note}>{t("home.superadmin")}</p>}
       {businesses.isPending ? (
         <>
@@ -60,7 +69,11 @@ export function HomeScreen({ actor }: { actor: SessionActor }) {
               const said = accessText(access.get(business.id));
               return (
                 <li key={business.id} className={`${controls.card} ${styles.business}`}>
-                  <h2 className={styles.name}>{business.name}</h2>
+                  <h2 className={styles.name}>
+                    <AppLink className={styles.link} href={hrefOf({ screen: "business", businessId: business.id })}>
+                      {business.name}
+                    </AppLink>
+                  </h2>
                   <p className={styles.subdomain}>{business.subdomain}</p>
                   {said !== null && <p className={styles.access}>{said}</p>}
                 </li>
@@ -74,7 +87,7 @@ export function HomeScreen({ actor }: { actor: SessionActor }) {
               disabled={businesses.isFetchingNextPage}
               onClick={() => void businesses.fetchNextPage()}
             >
-              {t("home.loadMore")}
+              {t("common.loadMore")}
             </button>
           )}
         </>

@@ -1,0 +1,46 @@
+import { canAdminister, hrefOf } from "@miramenu/admin-core";
+import type { SessionActor } from "@miramenu/contracts";
+import { useQuery } from "@tanstack/react-query";
+import { useAdminApi } from "../app/api-context";
+import { keys } from "../app/keys";
+import { LoadState } from "../app/LoadState";
+import { t } from "../i18n";
+import { AppLink } from "../ui/AppLink";
+import controls from "../ui/controls.module.css";
+import page from "../ui/page.module.css";
+import { BranchesSection } from "./BranchesSection";
+import { BusinessDetails } from "./BusinessDetails";
+
+/** A business: its data, its branches and, for its admin, the way to its team. */
+export function BusinessScreen({ actor, businessId }: { actor: SessionActor; businessId: string }) {
+  const api = useAdminApi();
+  const business = useQuery({
+    queryKey: keys.business(businessId),
+    queryFn: () => api.business(businessId),
+  });
+  if (business.data === undefined) return <LoadState query={business} loading={t("business.loading")} />;
+  const administer = canAdminister(actor, businessId);
+  return (
+    <main className={page.page}>
+      <AppLink className={page.back} href="/">
+        {t("common.backHome")}
+      </AppLink>
+      <h1 className={page.title}>{business.data.name}</h1>
+      <div className={page.columns}>
+        <BusinessDetails business={business.data} editable={administer} />
+        <BranchesSection businessId={businessId} editable={administer} />
+        {administer && (
+          <section className={`${controls.card} ${page.section}`} aria-labelledby="business-team">
+            <h2 id="business-team" className={page.sectionTitle}>
+              {t("business.team")}
+            </h2>
+            <p className={page.hint}>{t("business.teamDescription")}</p>
+            <AppLink className={controls.secondary} href={hrefOf({ screen: "team", businessId })}>
+              {t("business.openTeam")}
+            </AppLink>
+          </section>
+        )}
+      </div>
+    </main>
+  );
+}

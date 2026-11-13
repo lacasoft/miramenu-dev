@@ -201,6 +201,14 @@ export const branchPageSchema = pageSchema(branchSchema);
 export const businessUserPageSchema = pageSchema(businessUserSchema);
 
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
+export type CreateBusinessRequest = z.input<typeof createBusinessRequestSchema>;
+export type UpdateBusinessRequest = z.input<typeof updateBusinessRequestSchema>;
+export type CreateBranchRequest = z.input<typeof createBranchRequestSchema>;
+export type UpdateBranchRequest = z.input<typeof updateBranchRequestSchema>;
+export type InviteUserRequest = z.input<typeof inviteUserRequestSchema>;
+/** One role to give in a business: a business admin, or the admin of one branch. */
+export type RoleTarget = z.input<typeof roleTargetSchema>;
+export type InvitationDelivery = z.infer<typeof invitationDeliverySchema>;
 export type SessionActor = z.infer<typeof sessionActorSchema>;
 export type Business = z.infer<typeof businessSchema>;
 export type CreatedBusiness = z.infer<typeof createdBusinessSchema>;

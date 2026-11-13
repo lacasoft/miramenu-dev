@@ -40,3 +40,14 @@ export type Section = "home";
 
 export const sectionsOf = (actor: SessionActor): Section[] =>
   hasAccess(actor) ? ["home"] : [];
+
+/**
+ * Whether to offer changing a business, its branches and its team: its admin restaurante
+ * and the superadmin (the API's `administer`, ADR-0032). The API still decides.
+ */
+export const canAdminister = (actor: SessionActor, businessId: string): boolean =>
+  actor.isSuperadmin ||
+  actor.roles.some((role) => role.role === "business_admin" && role.businessId === businessId);
+
+/** Only the superadmin gives a business its place in Miramenu (ADR-0020). */
+export const canCreateBusiness = (actor: SessionActor): boolean => actor.isSuperadmin;
