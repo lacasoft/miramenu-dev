@@ -212,7 +212,12 @@ describe('Publishing: conflicts, idempotency and draft versions (e2e)', () => {
 
       const draft = await businessDraft(owner, business.id);
       expect(draft.conflicts).toEqual([
-        { branchId: branch1, dishId: pastor, reason: 'price_changed' },
+        {
+          branchId: branch1,
+          dishId: pastor,
+          reason: 'price_changed',
+          dishName: 'Pastor',
+        },
       ]);
       const before = await menuOf(branch1);
       const response = await owner
@@ -278,7 +283,12 @@ describe('Publishing: conflicts, idempotency and draft versions (e2e)', () => {
       const draft = await businessDraft(owner, business.id);
       expect(draft.dishes.map((d) => d.id)).not.toContain(suadero);
       expect(draft.conflicts).toEqual([
-        { branchId: branch1, dishId: suadero, reason: 'dish_removed' },
+        {
+          branchId: branch1,
+          dishId: suadero,
+          reason: 'dish_removed',
+          dishName: 'Suadero',
+        },
       ]);
       expect((await publishBusiness(owner, business.id)).status).toBe(201);
 

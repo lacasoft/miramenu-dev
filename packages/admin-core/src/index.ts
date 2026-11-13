@@ -48,3 +48,32 @@ export {
   type RoleChoice,
 } from "./roles.ts";
 export { qrFileNameOf, qrPathOf, qrSvgOf, type QrModules } from "./qr.ts";
+export {
+  currencyOf,
+  descriptionProblemOf,
+  dishUpdateOf,
+  endPositionOf,
+  menuProblemOf,
+  moveOf,
+  newDishOf,
+  priceCentsOf,
+  priceProblemOf,
+  menuSectionsOf,
+  priceTextOf,
+  socialUrlProblemOf,
+  type DishValues,
+  type MenuProblem,
+  type MenuSection,
+  type PositionChange,
+  type PriceProblem,
+} from "./menu.ts";
+export {
+  attemptOf,
+  conflictKeyOf,
+  keepsAttempt,
+  publicationOf,
+  publishProblemOf,
+  rereadsDraft,
+  type PublicationAttempt,
+  type PublishProblem,
+} from "./publication.ts";

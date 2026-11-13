@@ -9,6 +9,7 @@ const BRANCH_1 = 'b1000000-0000-4000-8000-000000000001';
 const BRANCH_2 = 'b2000000-0000-4000-8000-000000000001';
 const DISH_A = 'da000000-0000-4000-8000-000000000001';
 const DISH_B = 'db000000-0000-4000-8000-000000000001';
+const NAME = { [DISH_A]: 'Pastor', [DISH_B]: 'Suadero' };
 
 const publishedBase = (prices: Record<string, number>): BaseSnapshot => ({
   profile: { name: 'La Fonda', socialLinks: [], logoId: null },
@@ -41,7 +42,9 @@ const override = (
 describe('findConflicts (ADR-0036)', () => {
   it('reports a branch price on a dish whose base price changed', () => {
     const conflicts = findConflicts({
-      draftDishes: [{ id: DISH_A, priceCents: 3000, removed: false }],
+      draftDishes: [
+        { id: DISH_A, name: NAME[DISH_A], priceCents: 3000, removed: false },
+      ],
       publishedBase: publishedBase({ [DISH_A]: 2500 }),
       branches: [
         { branchId: BRANCH_1, draft: [override(DISH_A, 2800)], published: [] },
@@ -49,13 +52,20 @@ describe('findConflicts (ADR-0036)', () => {
       ],
     });
     expect(conflicts).toEqual([
-      { branchId: BRANCH_1, dishId: DISH_A, reason: 'price_changed' },
+      {
+        branchId: BRANCH_1,
+        dishId: DISH_A,
+        reason: 'price_changed',
+        dishName: 'Pastor',
+      },
     ]);
   });
 
   it('also counts a branch price that is published but no longer in the draft', () => {
     const conflicts = findConflicts({
-      draftDishes: [{ id: DISH_A, priceCents: 3000, removed: false }],
+      draftDishes: [
+        { id: DISH_A, name: NAME[DISH_A], priceCents: 3000, removed: false },
+      ],
       publishedBase: publishedBase({ [DISH_A]: 2500 }),
       branches: [
         {
@@ -71,7 +81,9 @@ describe('findConflicts (ADR-0036)', () => {
   it('ignores adjustments that do not touch the price, and prices equal to the new base', () => {
     expect(
       findConflicts({
-        draftDishes: [{ id: DISH_A, priceCents: 3000, removed: false }],
+        draftDishes: [
+          { id: DISH_A, name: NAME[DISH_A], priceCents: 3000, removed: false },
+        ],
         publishedBase: publishedBase({ [DISH_A]: 2500 }),
         branches: [
           {
@@ -92,7 +104,9 @@ describe('findConflicts (ADR-0036)', () => {
   it('ignores a branch price when the base price did not change', () => {
     expect(
       findConflicts({
-        draftDishes: [{ id: DISH_A, priceCents: 2500, removed: false }],
+        draftDishes: [
+          { id: DISH_A, name: NAME[DISH_A], priceCents: 2500, removed: false },
+        ],
         publishedBase: publishedBase({ [DISH_A]: 2500 }),
         branches: [
           {
@@ -108,7 +122,9 @@ describe('findConflicts (ADR-0036)', () => {
   it('has nothing to compare against on the first publication', () => {
     expect(
       findConflicts({
-        draftDishes: [{ id: DISH_A, priceCents: 3000, removed: false }],
+        draftDishes: [
+          { id: DISH_A, name: NAME[DISH_A], priceCents: 3000, removed: false },
+        ],
         publishedBase: null,
         branches: [
           {
@@ -123,7 +139,9 @@ describe('findConflicts (ADR-0036)', () => {
 
   it('reports any adjustment of a removed dish, once per branch', () => {
     const conflicts = findConflicts({
-      draftDishes: [{ id: DISH_B, priceCents: 1000, removed: true }],
+      draftDishes: [
+        { id: DISH_B, name: NAME[DISH_B], priceCents: 1000, removed: true },
+      ],
       publishedBase: publishedBase({ [DISH_B]: 1000 }),
       branches: [
         {
@@ -135,16 +153,36 @@ describe('findConflicts (ADR-0036)', () => {
       ],
     });
     expect(conflicts).toEqual([
-      { branchId: BRANCH_1, dishId: DISH_B, reason: 'dish_removed' },
-      { branchId: BRANCH_2, dishId: DISH_B, reason: 'dish_removed' },
+      {
+        branchId: BRANCH_1,
+        dishId: DISH_B,
+        reason: 'dish_removed',
+        dishName: 'Suadero',
+      },
+      {
+        branchId: BRANCH_2,
+        dishId: DISH_B,
+        reason: 'dish_removed',
+        dishName: 'Suadero',
+      },
     ]);
   });
 });
 
 describe('unconfirmedConflicts', () => {
   const conflicts = [
-    { branchId: BRANCH_1, dishId: DISH_A, reason: 'price_changed' as const },
-    { branchId: BRANCH_2, dishId: DISH_A, reason: 'price_changed' as const },
+    {
+      branchId: BRANCH_1,
+      dishId: DISH_A,
+      reason: 'price_changed' as const,
+      dishName: 'Pastor',
+    },
+    {
+      branchId: BRANCH_2,
+      dishId: DISH_A,
+      reason: 'price_changed' as const,
+      dishName: 'Pastor',
+    },
   ];
 
   it('is empty when the admin confirmed the whole list it saw', () => {

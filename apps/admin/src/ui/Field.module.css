@@ -38,3 +38,9 @@
   font-size: var(--text-label);
   line-height: var(--text-label-line-height);
 }
+
+/* A longer text: room for a few lines, the same border and focus. */
+.area {
+  padding: var(--space-12) var(--space-16);
+  resize: vertical;
+}

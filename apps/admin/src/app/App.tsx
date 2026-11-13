@@ -9,6 +9,7 @@ import { BusinessScreen } from "../business/BusinessScreen";
 import { NewBusinessScreen } from "../business/NewBusinessScreen";
 import { TeamScreen } from "../team/TeamScreen";
 import { HomeScreen } from "../home/HomeScreen";
+import { MenuScreen } from "../menu/MenuScreen";
 import { t } from "../i18n";
 import { navigate, useLocation, type AppLocation } from "../platform/location";
 import { AppShell } from "../shell/AppShell";
@@ -48,6 +49,8 @@ function screenOf(route: AdminRoute, actor: SessionActor): ReactNode {
       return <BusinessScreen key={route.businessId} actor={actor} businessId={route.businessId} />;
     case "team":
       return <TeamScreen key={route.businessId} actor={actor} businessId={route.businessId} />;
+    case "menu":
+      return <MenuScreen key={route.businessId} actor={actor} businessId={route.businessId} />;
     case "branch":
       return <BranchScreen key={route.branchId} actor={actor} branchId={route.branchId} />;
     default:

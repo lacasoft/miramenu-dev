@@ -1,11 +1,12 @@
 import { ApiError, type AdminApi } from "@miramenu/api-client";
 import type { Business, Page, SessionActor } from "@miramenu/contracts";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { render } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 import { vi } from "vitest";
 import { AdminApiContext } from "../app/api-context";
 import { App } from "../app/App";
 import { createQueryClient } from "../app/query-client";
+import { menuApi } from "./fake-menu";
 import { worldApi, type World } from "./fake-world";
 
 export const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -55,6 +56,7 @@ export function fakeAdminApi({
   let current = signedIn;
   const api = {
     ...worldApi(world, () => current),
+    ...menuApi(world, () => current),
     session: vi.fn(async () => current),
     signIn: vi.fn(async ({ email }: { email: string; password: string }) => {
       const account = accounts[email];
@@ -93,3 +95,9 @@ export function renderAdmin(api: Partial<AdminApi>, path = "/") {
 }
 
 export const here = () => `${window.location.pathname}${window.location.search}`;
+
+/**
+ * Lets whatever a click started go out: a mutation calls the API a moment after the click,
+ * so "never called" is only true once that moment passed.
+ */
+export const settled = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
