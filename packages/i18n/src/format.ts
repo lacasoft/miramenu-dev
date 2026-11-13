@@ -45,3 +45,29 @@ export function formatRelativeTime(
   }
   return format.format(0, "second");
 }
+
+/** A count with the locale's grouping: "1,284". */
+export const formatCount = (value: number, locale: string = DINER_LOCALE): string =>
+  new Intl.NumberFormat(locale).format(value);
+
+/** A share of 0 to 1 as a percentage: "37 %" or "37%", as the locale writes it. */
+export const formatPercent = (ratio: number, locale: string = DINER_LOCALE): string =>
+  new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits: 0 }).format(ratio);
+
+/** A change against before, always signed and never "−0": "+12 %", "−8 %". */
+export const formatSignedPercent = (ratio: number, locale: string = DINER_LOCALE): string =>
+  new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits: 0, signDisplay: "exceptZero" }).format(
+    ratio,
+  );
+
+/** A time in seconds with one decimal: "3.4 s". */
+export const formatSeconds = (milliseconds: number, locale: string = DINER_LOCALE): string =>
+  `${new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(milliseconds / 1000)} s`;
+
+/** A calendar day, `YYYY-MM-DD`, as a short label: "13 nov". */
+export function formatShortDay(date: string, locale: string = DINER_LOCALE): string {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: "UTC" })
+    .format(Date.UTC(year!, month! - 1, day!))
+    .replace(".", "");
+}

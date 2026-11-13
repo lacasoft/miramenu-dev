@@ -18,11 +18,15 @@ export type AdminRoute =
   | { screen: "menu"; businessId: string }
   /** The comments of every branch of the business waiting for a moderator. */
   | { screen: "businessModeration"; businessId: string }
+  /** The business's figures, grouped over every branch. */
+  | { screen: "businessDashboard"; businessId: string }
   | { screen: "branch"; branchId: string }
   /** A branch's menu: its adjustments of the base, its own dishes, profile and publication. */
   | { screen: "branchMenu"; branchId: string }
   /** The branch's comments waiting for a moderator. */
   | { screen: "branchModeration"; branchId: string }
+  /** One branch's figures. */
+  | { screen: "branchDashboard"; branchId: string }
   | { screen: "notFound" };
 
 /** The session had ended, or an invitation was just accepted. */
@@ -49,11 +53,13 @@ function pageOf(segments: readonly string[]): AdminRoute {
     if (third === "team") return { screen: "team", businessId: second };
     if (third === "menu") return { screen: "menu", businessId: second };
     if (third === "comments") return { screen: "businessModeration", businessId: second };
+    if (third === "dashboard") return { screen: "businessDashboard", businessId: second };
   }
   if (first === "branches" && second !== undefined && UUID.test(second)) {
     if (third === undefined) return { screen: "branch", branchId: second };
     if (third === "menu") return { screen: "branchMenu", branchId: second };
     if (third === "comments") return { screen: "branchModeration", branchId: second };
+    if (third === "dashboard") return { screen: "branchDashboard", branchId: second };
   }
   return { screen: "notFound" };
 }
@@ -97,12 +103,16 @@ export function hrefOf(route: AdminRoute): string {
       return `/businesses/${route.businessId}/menu`;
     case "businessModeration":
       return `/businesses/${route.businessId}/comments`;
+    case "businessDashboard":
+      return `/businesses/${route.businessId}/dashboard`;
     case "branch":
       return `/branches/${route.branchId}`;
     case "branchMenu":
       return `/branches/${route.branchId}/menu`;
     case "branchModeration":
       return `/branches/${route.branchId}/comments`;
+    case "branchDashboard":
+      return `/branches/${route.branchId}/dashboard`;
     case "home":
     case "notFound":
       return "/";

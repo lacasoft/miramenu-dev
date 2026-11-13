@@ -14,6 +14,7 @@ import { vi } from "vitest";
 import { httpError, id } from "./fake-admin";
 import type { BranchMenuState } from "./fake-branch-menu";
 import type { MenuState } from "./fake-menu";
+import type { MetricsOf } from "./fake-metrics";
 import type { FakeComment } from "./fake-moderation";
 
 /** Businesses, branches and people in memory, answering as the API does. */
@@ -29,6 +30,8 @@ export interface World {
   branchMenus?: Record<string, BranchMenuState>;
   /** The diners' comments, in any state. */
   comments?: FakeComment[];
+  /** The figures of each business or branch, for each period asked. */
+  metricsOf?: MetricsOf;
 }
 
 export const branchOf = (n: number, businessId: string, name: string, slug: string, subdomain: string | null = null): Branch => ({

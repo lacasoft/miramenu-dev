@@ -112,3 +112,24 @@ export {
   type BranchSection,
 } from "./branch-menu.ts";
 export { moderationProblemOf, rereadsQueue, type ModerationProblem } from "./moderation.ts";
+export {
+  addDays,
+  changeOf,
+  customPeriodOf,
+  DASHBOARD_TIME_ZONE,
+  daysOf,
+  dishRowsOf,
+  localDateOf,
+  midnightOf,
+  presetPeriodOf,
+  previousPeriodOf,
+  rankingOf,
+  ticksOf,
+  viewRateOf,
+  viewsByDayOf,
+  type Change,
+  type DishRow,
+  type Period,
+  type PeriodProblem,
+  type Preset,
+} from "./dashboard.ts";
