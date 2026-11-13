@@ -18,6 +18,7 @@ import {
   type Actor,
   BranchDirectory,
 } from '../../business-access';
+import { MenuDishes } from '../../catalog';
 import { DinerDirectory } from '../../diners';
 import {
   type CommentStatus,
@@ -53,6 +54,7 @@ export class ModerationService {
     private readonly access: AccessControl,
     private readonly branches: BranchDirectory,
     private readonly diners: DinerDirectory,
+    private readonly menuDishes: MenuDishes,
     @Inject(APP_CONFIG) config: AppConfig,
   ) {
     this.overdueHours = config.interactions.commentOverdueHours;
@@ -146,6 +148,7 @@ export class ModerationService {
     const names = await this.diners.publicNames(
       rows.map((row) => row.diner_id),
     );
+    const dishNames = await this.dishNamesOf(rows);
     const page = toPage(
       rows.map((row) => ({ ...row, createdAt: row.submitted_at })),
       query.limit,
@@ -153,6 +156,7 @@ export class ModerationService {
         id: row.id,
         branchId: row.branch_id,
         dishId: row.dish_id,
+        dishName: dishNames.get(`${row.branch_id}:${row.dish_id}`) ?? null,
         text: row.text,
         author: { name: names.get(row.diner_id) ?? '' },
         version: row.version,
@@ -161,5 +165,25 @@ export class ModerationService {
       }),
     );
     return { ...page, overdueCount: Number(overdue.count) };
+  }
+
+  /** The dishes' names on each branch's published menu, read once per branch of the page. */
+  private async dishNamesOf(
+    rows: readonly PendingRow[],
+  ): Promise<Map<string, string>> {
+    const branchIds = [...new Set(rows.map((row) => row.branch_id))];
+    const menus = await Promise.all(
+      branchIds.map(async (branchId) => ({
+        branchId,
+        names: await this.menuDishes.namesOf(branchId),
+      })),
+    );
+    return new Map(
+      menus.flatMap(({ branchId, names }) =>
+        [...names].map(
+          ([dishId, name]) => [`${branchId}:${dishId}`, name] as const,
+        ),
+      ),
+    );
   }
 }

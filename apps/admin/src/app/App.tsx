@@ -11,6 +11,7 @@ import { NewBusinessScreen } from "../business/NewBusinessScreen";
 import { TeamScreen } from "../team/TeamScreen";
 import { HomeScreen } from "../home/HomeScreen";
 import { MenuScreen } from "../menu/MenuScreen";
+import { BranchModerationScreen, BusinessModerationScreen } from "../moderation/ModerationScreens";
 import { t } from "../i18n";
 import { navigate, useLocation, type AppLocation } from "../platform/location";
 import { AppShell } from "../shell/AppShell";
@@ -56,6 +57,10 @@ function screenOf(route: AdminRoute, actor: SessionActor): ReactNode {
       return <BranchScreen key={route.branchId} actor={actor} branchId={route.branchId} />;
     case "branchMenu":
       return <BranchMenuScreen key={route.branchId} actor={actor} branchId={route.branchId} />;
+    case "businessModeration":
+      return <BusinessModerationScreen key={route.businessId} businessId={route.businessId} />;
+    case "branchModeration":
+      return <BranchModerationScreen key={route.branchId} branchId={route.branchId} />;
     default:
       return <StatusScreen kind="notFound" inShell action={toHome} />;
   }

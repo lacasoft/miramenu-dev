@@ -12,6 +12,8 @@ export const keys = {
   /** Read again whenever the states of the draft's media change. */
   mediaProblemsAt: (businessId: string, states: string) => ["admin-media-problems", businessId, states] as const,
   branchMenuDraft: (branchId: string) => ["admin-branch-menu-draft", branchId] as const,
+  /** A moderation queue of a business or a branch; its pages and its summary live under it. */
+  moderation: (scope: "business" | "branch", id: string) => ["admin-moderation", scope, id] as const,
   branchMediaProblems: (branchId: string) => ["admin-branch-media-problems", branchId] as const,
   branchMediaProblemsAt: (branchId: string, states: string) => ["admin-branch-media-problems", branchId, states] as const,
 };

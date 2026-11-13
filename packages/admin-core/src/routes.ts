@@ -16,9 +16,13 @@ export type AdminRoute =
   | { screen: "team"; businessId: string }
   /** The business's base menu: its draft and its publication. */
   | { screen: "menu"; businessId: string }
+  /** The comments of every branch of the business waiting for a moderator. */
+  | { screen: "businessModeration"; businessId: string }
   | { screen: "branch"; branchId: string }
   /** A branch's menu: its adjustments of the base, its own dishes, profile and publication. */
   | { screen: "branchMenu"; branchId: string }
+  /** The branch's comments waiting for a moderator. */
+  | { screen: "branchModeration"; branchId: string }
   | { screen: "notFound" };
 
 /** The session had ended, or an invitation was just accepted. */
@@ -44,10 +48,12 @@ function pageOf(segments: readonly string[]): AdminRoute {
     if (third === undefined) return { screen: "business", businessId: second };
     if (third === "team") return { screen: "team", businessId: second };
     if (third === "menu") return { screen: "menu", businessId: second };
+    if (third === "comments") return { screen: "businessModeration", businessId: second };
   }
   if (first === "branches" && second !== undefined && UUID.test(second)) {
     if (third === undefined) return { screen: "branch", branchId: second };
     if (third === "menu") return { screen: "branchMenu", branchId: second };
+    if (third === "comments") return { screen: "branchModeration", branchId: second };
   }
   return { screen: "notFound" };
 }
@@ -89,10 +95,14 @@ export function hrefOf(route: AdminRoute): string {
       return `/businesses/${route.businessId}/team`;
     case "menu":
       return `/businesses/${route.businessId}/menu`;
+    case "businessModeration":
+      return `/businesses/${route.businessId}/comments`;
     case "branch":
       return `/branches/${route.branchId}`;
     case "branchMenu":
       return `/branches/${route.branchId}/menu`;
+    case "branchModeration":
+      return `/branches/${route.branchId}/comments`;
     case "home":
     case "notFound":
       return "/";

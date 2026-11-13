@@ -1,0 +1,25 @@
+.start {
+  justify-self: start;
+}
+
+/* The comment as its author wrote it: a quiet rule on its side marks it as a quote. */
+.text {
+  margin: 0;
+  padding: var(--space-4) 0 var(--space-4) var(--space-16);
+  border-left: 3px solid var(--dashboard-muted);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* Waiting too long: the negative pair, and the word says it. */
+.late {
+  justify-self: start;
+  margin: 0;
+  padding: var(--space-4) var(--space-12);
+  border-radius: var(--radius-pill);
+  background-color: var(--dashboard-negative);
+  color: var(--dashboard-negative-text);
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+  font-weight: 600;
+}

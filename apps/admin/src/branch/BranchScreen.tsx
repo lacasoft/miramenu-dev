@@ -1,4 +1,4 @@
-import { canAdminister, hrefOf, saveProblemOf, type SaveProblem } from "@miramenu/admin-core";
+import { canAdminister, canOperateBranch, hrefOf, saveProblemOf, type SaveProblem } from "@miramenu/admin-core";
 import type { Branch, SessionActor, UpdateBranchRequest } from "@miramenu/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -11,6 +11,7 @@ import { AppLink } from "../ui/AppLink";
 import controls from "../ui/controls.module.css";
 import page from "../ui/page.module.css";
 import { BranchForm, type BranchValues } from "./BranchForm";
+import { ModerationCard } from "../moderation/ModerationCard";
 import { QrCard } from "./QrCard";
 
 /** Only what changed goes to the API; an emptied subdomain removes the branch's own. */
@@ -121,6 +122,13 @@ export function BranchScreen({ actor, branchId }: { actor: SessionActor; branchI
       <div className={page.columns}>
         <BranchDetails branch={branch.data} editable={canAdminister(actor, branch.data.businessId)} />
         <QrCard branch={branch.data} businessName={business.data?.name} />
+        {canOperateBranch(actor, branch.data) && (
+          <ModerationCard
+            queueKey={keys.moderation("branch", branch.data.id)}
+            load={(client) => client.branchModeration(branch.data.id)}
+            href={hrefOf({ screen: "branchModeration", branchId: branch.data.id })}
+          />
+        )}
         <section className={`${controls.card} ${page.section}`} aria-labelledby="branch-menu">
           <h2 id="branch-menu" className={page.sectionTitle}>
             {t("branch.menu")}

@@ -117,6 +117,7 @@ describe('Moderation of comments (e2e)', () => {
     expect(page.items.find((item) => item.id === first.id)).toMatchObject({
       branchId: restaurant.branchId,
       dishId: restaurant.dishId,
+      dishName: 'Pastor',
       text: 'Uno',
       author: { name: 'Dana' },
       version: 1,
@@ -146,6 +147,32 @@ describe('Moderation of comments (e2e)', () => {
       .send('post', `/admin/comments/${comment.id}/approve`, { version: 1 })
       .expect(204);
     expect(await isPublic(comment.id)).toBe(true);
+  });
+
+  it('names the dish as diners read it, and none once the branch hid it', async () => {
+    const branch = (
+      await createBranch(restaurant.owner, restaurant.business.id)
+    ).id;
+    expect((await publishBranch(restaurant.owner, branch)).status).toBe(201);
+    const comment = await postComment(diner, branch, restaurant.dishId);
+    const named = await queue(restaurant.owner, branchQueue(branch));
+    expect(named.items.find((item) => item.id === comment.id)?.dishName).toBe(
+      'Pastor',
+    );
+
+    await restaurant.owner
+      .send('put', `/admin/branches/${branch}/overrides/${restaurant.dishId}`, {
+        priceCents: null,
+        available: true,
+        hidden: true,
+      })
+      .expect(200);
+    expect((await publishBranch(restaurant.owner, branch)).status).toBe(201);
+    const hidden = await queue(restaurant.owner, branchQueue(branch));
+    expect(hidden.items.find((item) => item.id === comment.id)).toMatchObject({
+      dishId: restaurant.dishId,
+      dishName: null,
+    });
   });
 
   it('lets the superadmin moderate too', async () => {

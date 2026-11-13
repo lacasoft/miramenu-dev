@@ -17,6 +17,7 @@ import {
   invitedUserSchema,
   mediaPageSchema,
   mediaSchema,
+  moderationPageSchema,
   overrideSchema,
   profileSchema,
   publicationSchema,
@@ -44,6 +45,7 @@ import {
   type LoginRequest,
   type Override,
   type Media,
+  type ModerationPage,
   type Page,
   type Profile,
   type PublishBranchMenuRequest,
@@ -367,6 +369,31 @@ export function createAdminApi({ baseUrl, transport }: AdminApiOptions) {
     },
 
     /**
+     * The business's comments waiting for a moderator, of every branch, oldest first, with
+     * how many are overdue (ADR-0040). `overdue`: only those. Its admin and the superadmin.
+     */
+    businessModeration(businessId: string, query: ModerationQuery = {}): Promise<ModerationPage> {
+      return call(at("GET", `/admin/businesses/${id(businessId)}/moderation${moderationQuery(query)}`), moderationPageSchema);
+    },
+
+    /** The branch's comments waiting for a moderator, as `businessModeration`. */
+    branchModeration(branchId: string, query: ModerationQuery = {}): Promise<ModerationPage> {
+      return call(at("GET", `/admin/branches/${id(branchId)}/moderation${moderationQuery(query)}`), moderationPageSchema);
+    },
+
+    /**
+     * Approves the version the moderator read. A 409 COMMENT_CHANGED when its author edited
+     * it or someone else moderated it since.
+     */
+    approveComment(commentId: string, version: number): Promise<void> {
+      return act(json("POST", `/admin/comments/${id(commentId)}/approve`, { version }));
+    },
+
+    rejectComment(commentId: string, version: number): Promise<void> {
+      return act(json("POST", `/admin/comments/${id(commentId)}/reject`, { version }));
+    },
+
+    /**
      * Sets the password of an invited admin. The token travels in the body, never in a URL
      * (ADR-0033); no session opens, so the admin signs in next. A used or replaced
      * invitation is a 404, an expired one a 410.
@@ -378,3 +405,17 @@ export function createAdminApi({ baseUrl, transport }: AdminApiOptions) {
 }
 
 export type AdminApi = ReturnType<typeof createAdminApi>;
+
+/** Which page of a moderation queue, and whether only the overdue comments. */
+export interface ModerationQuery {
+  cursor?: string;
+  overdue?: boolean;
+}
+
+function moderationQuery({ cursor, overdue }: ModerationQuery): string {
+  const parts = [
+    ...(overdue === true ? ["overdue=true"] : []),
+    ...(cursor === undefined ? [] : [`cursor=${encodeURIComponent(cursor)}`]),
+  ];
+  return parts.length === 0 ? "" : `?${parts.join("&")}`;
+}

@@ -491,3 +491,67 @@ describe("the admin's branch menu", () => {
     });
   });
 });
+
+describe("the admin's moderation (ADR-0040)", () => {
+  const BUSINESS_ID = "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d";
+  const BRANCH_ID = "6f1c2e0a-8b3d-4c5e-9f7a-1b2c3d4e5f60";
+  const COMMENT_ID = "7b8c9d0e-1f2a-4b3c-8d4e-5f6a7b8c9d0e";
+  const PAGE = {
+    items: [
+      {
+        id: COMMENT_ID,
+        branchId: BRANCH_ID,
+        dishId: "2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f60",
+        dishName: null,
+        text: "Muy rico",
+        author: { name: "Dana" },
+        version: 2,
+        submittedAt: "2026-11-13T18:00:00.000Z",
+        overdue: true,
+      },
+    ],
+    nextCursor: "c_2",
+    overdueCount: 1,
+  };
+
+  it("reads a queue of the business or of a branch, only the overdue ones, a page at a time", async () => {
+    const { sent, api } = fakeTransport(() => reply(200, PAGE));
+    assert.deepEqual(await api.businessModeration(BUSINESS_ID), PAGE);
+    await api.businessModeration(BUSINESS_ID, { overdue: true, cursor: "c_2" });
+    await api.branchModeration(BRANCH_ID, { cursor: "c_2" });
+    assert.deepEqual(
+      sent.map((request) => request.url),
+      [
+        `https://api.mirame.nu/admin/businesses/${BUSINESS_ID}/moderation`,
+        `https://api.mirame.nu/admin/businesses/${BUSINESS_ID}/moderation?overdue=true&cursor=c_2`,
+        `https://api.mirame.nu/admin/branches/${BRANCH_ID}/moderation?cursor=c_2`,
+      ],
+    );
+    const unnamed = await failureOf(
+      fakeTransport(() => reply(200, { ...PAGE, overdueCount: undefined })).api.branchModeration(BRANCH_ID),
+    );
+    assert.deepEqual(unnamed.failure, { kind: "unexpected", status: 200 });
+  });
+
+  it("approves or rejects the version the moderator read", async () => {
+    const { sent, api } = fakeTransport(() => reply(204));
+    await api.approveComment(COMMENT_ID, 2);
+    await api.rejectComment(COMMENT_ID, 2);
+    assert.deepEqual(sent, [
+      {
+        method: "POST",
+        url: `https://api.mirame.nu/admin/comments/${COMMENT_ID}/approve`,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ version: 2 }),
+      },
+      {
+        method: "POST",
+        url: `https://api.mirame.nu/admin/comments/${COMMENT_ID}/reject`,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ version: 2 }),
+      },
+    ]);
+    const changed = await failureOf(fakeTransport(() => reply(409, envelope("COMMENT_CHANGED"))).api.approveComment(COMMENT_ID, 2));
+    assert.equal(changed.failure.kind === "http" && changed.failure.code, "COMMENT_CHANGED");
+  });
+});
