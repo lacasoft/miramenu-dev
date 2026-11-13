@@ -17,6 +17,7 @@ import {
   invitedUserSchema,
   mediaPageSchema,
   mediaSchema,
+  metricsSchema,
   moderationPageSchema,
   overrideSchema,
   profileSchema,
@@ -45,6 +46,7 @@ import {
   type LoginRequest,
   type Override,
   type Media,
+  type Metrics,
   type ModerationPage,
   type Page,
   type Profile,
@@ -394,6 +396,19 @@ export function createAdminApi({ baseUrl, transport }: AdminApiOptions) {
     },
 
     /**
+     * The business's figures grouped over every branch (ADR-0041): totals with their rates,
+     * days in the zone and each dish. Its admin and the superadmin.
+     */
+    businessMetrics(businessId: string, period: MetricsPeriod): Promise<Metrics> {
+      return call(at("GET", `/admin/businesses/${id(businessId)}/metrics${metricsQuery(period)}`), metricsSchema);
+    },
+
+    /** One branch's figures, as `businessMetrics`: its own admin, its business's, the superadmin. */
+    branchMetrics(branchId: string, period: MetricsPeriod): Promise<Metrics> {
+      return call(at("GET", `/admin/branches/${id(branchId)}/metrics${metricsQuery(period)}`), metricsSchema);
+    },
+
+    /**
      * Sets the password of an invited admin. The token travels in the body, never in a URL
      * (ADR-0033); no session opens, so the admin signs in next. A used or replaced
      * invitation is a 404, an expired one a 410.
@@ -405,6 +420,16 @@ export function createAdminApi({ baseUrl, transport }: AdminApiOptions) {
 }
 
 export type AdminApi = ReturnType<typeof createAdminApi>;
+
+/** The period of some figures: whole hours, read in a time zone (IANA). */
+export interface MetricsPeriod {
+  from: string;
+  to: string;
+  timeZone: string;
+}
+
+const metricsQuery = ({ from, to, timeZone }: MetricsPeriod) =>
+  `?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&timeZone=${encodeURIComponent(timeZone)}`;
 
 /** Which page of a moderation queue, and whether only the overdue comments. */
 export interface ModerationQuery {

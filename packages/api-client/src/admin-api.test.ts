@@ -555,3 +555,37 @@ describe("the admin's moderation (ADR-0040)", () => {
     assert.equal(changed.failure.kind === "http" && changed.failure.code, "COMMENT_CHANGED");
   });
 });
+
+describe("the admin's metrics (ADR-0041)", () => {
+  const BUSINESS_ID = "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d";
+  const BRANCH_ID = "6f1c2e0a-8b3d-4c5e-9f7a-1b2c3d4e5f60";
+  const measures = { entries: 4, views: 3, exposureMs: 9000, quickSkips: 1, likes: 2, comments: 1 };
+  const METRICS = {
+    period: { from: "2026-11-07T06:00:00.000Z", to: "2026-11-14T01:00:00.000Z", timeZone: "America/Mexico_City" },
+    totals: { ...measures, exposureAverageMs: 3000, quickSkipRate: 0.25 },
+    byDay: [{ ...measures, day: "2026-11-13" }],
+    byDish: [{ ...measures, exposureAverageMs: 3000, quickSkipRate: null, dishId: "2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f60" }],
+  };
+  const period = { from: "2026-11-07T06:00:00.000Z", to: "2026-11-14T01:00:00.000Z", timeZone: "America/Mexico_City" };
+  const query = "?from=2026-11-07T06%3A00%3A00.000Z&to=2026-11-14T01%3A00%3A00.000Z&timeZone=America%2FMexico_City";
+
+  it("reads the figures of a business or a branch for a period in a time zone", async () => {
+    const { sent, api } = fakeTransport(() => reply(200, METRICS));
+    assert.deepEqual(await api.businessMetrics(BUSINESS_ID, period), METRICS);
+    await api.branchMetrics(BRANCH_ID, period);
+    assert.deepEqual(
+      sent.map((request) => [request.method, request.url]),
+      [
+        ["GET", `https://api.mirame.nu/admin/businesses/${BUSINESS_ID}/metrics${query}`],
+        ["GET", `https://api.mirame.nu/admin/branches/${BRANCH_ID}/metrics${query}`],
+      ],
+    );
+  });
+
+  it("never trusts a rate out of its range", async () => {
+    const broken = await failureOf(
+      fakeTransport(() => reply(200, { ...METRICS, totals: { ...METRICS.totals, quickSkipRate: 1.5 } })).api.branchMetrics(BRANCH_ID, period),
+    );
+    assert.deepEqual(broken.failure, { kind: "unexpected", status: 200 });
+  });
+});
