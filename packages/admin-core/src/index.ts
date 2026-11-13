@@ -11,6 +11,7 @@ export {
 export {
   accessOf,
   canAdminister,
+  canOperateBranch,
   canCreateBusiness,
   hasAccess,
   sectionsOf,
@@ -97,3 +98,16 @@ export {
   type UploadProgress,
   type UploadStep,
 } from "./media.ts";
+export {
+  adjustedOf,
+  adjustmentOf,
+  adjustmentPriceProblemOf,
+  adjustmentValuesOf,
+  branchSectionsOf,
+  dishesInSection,
+  newBranchDishOf,
+  type AdjustedDish,
+  type AdjustmentChange,
+  type AdjustmentValues,
+  type BranchSection,
+} from "./branch-menu.ts";

@@ -396,3 +396,98 @@ describe("the admin's media (ADR-0038)", () => {
     );
   });
 });
+
+describe("the admin's branch menu", () => {
+  const BRANCH_ID = "6f1c2e0a-8b3d-4c5e-9f7a-1b2c3d4e5f60";
+  const DISH_ID = "2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f60";
+  const R = `https://api.mirame.nu/admin/branches/${BRANCH_ID}`;
+  const OVERRIDE = { dishId: DISH_ID, priceCents: null, available: false, hidden: false };
+  const OWN = {
+    id: "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d",
+    categoryId: "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+    name: "Gringa",
+    description: "",
+    priceCents: 7000,
+    currency: "MXN",
+    imageId: null,
+    videoId: null,
+    position: 3,
+    available: true,
+  };
+  const DRAFT = { draftVersion: 2, publishedVersion: 1, profile: null, overrides: [OVERRIDE], dishes: [OWN], media: [] };
+  const PROFILE = { name: "La Fonda Centro", socialLinks: [], logoId: null };
+  const MEDIA = {
+    id: "4f5a6b7c-8d9e-4f0a-9b1c-2d3e4f5a6b7c",
+    kind: "image",
+    branchId: BRANCH_ID,
+    status: "processing",
+    contentType: "image/jpeg",
+    sizeBytes: 2048,
+    failureReason: null,
+    stalled: false,
+    image: null,
+    video: null,
+    createdAt: "2026-11-13T18:00:00.000Z",
+  };
+  const UPLOAD = { url: "https://s3.example.test/o", method: "PUT", headers: {}, expiresAt: "2026-11-13T18:10:00.000Z" };
+  const PUBLICATION = {
+    id: "3e4f5a6b-7c8d-4e9f-8a1b-2c3d4e5f6a7b",
+    scope: "branch",
+    version: 2,
+    publishedAt: "2026-11-13T18:00:00.000Z",
+    menus: [{ branchId: BRANCH_ID, version: 4 }],
+  };
+  const override = { priceCents: null, available: false, hidden: false };
+  const ownDish = { categoryId: OWN.categoryId, name: "Gringa", priceCents: 7000, currency: "MXN" };
+  const signed = { kind: "image", contentType: "image/jpeg", sizeBytes: 2048 } as const;
+
+  const cases: [string, (api: ReturnType<typeof createAdminApi>) => Promise<unknown>, string, string, unknown, unknown][] = [
+    ["branchMenuDraft", (api) => api.branchMenuDraft(BRANCH_ID), "GET", `${R}/menu-draft`, undefined, DRAFT],
+    ["putOverride", (api) => api.putOverride(BRANCH_ID, DISH_ID, override), "PUT", `${R}/overrides/${DISH_ID}`, override, OVERRIDE],
+    ["createBranchDish", (api) => api.createBranchDish(BRANCH_ID, ownDish), "POST", `${R}/dishes`, ownDish, OWN],
+    ["updateBranchDish", (api) => api.updateBranchDish(BRANCH_ID, OWN.id, { available: false }), "PATCH", `${R}/dishes/${OWN.id}`, { available: false }, OWN],
+    ["putBranchProfile", (api) => api.putBranchProfile(BRANCH_ID, PROFILE), "PUT", `${R}/profile`, PROFILE, PROFILE],
+    ["createBranchMedia", (api) => api.createBranchMedia(BRANCH_ID, signed), "POST", `${R}/media`, signed, { media: MEDIA, upload: UPLOAD }],
+    ["completeBranchMedia", (api) => api.completeBranchMedia(BRANCH_ID, MEDIA.id), "POST", `${R}/media/${MEDIA.id}/complete`, undefined, MEDIA],
+    ["branchMediaProblems", (api) => api.branchMediaProblems(BRANCH_ID, "c_2"), "GET", `${R}/media?problem=true&cursor=c_2`, undefined, { items: [MEDIA], nextCursor: null }],
+  ];
+
+  for (const [name, run, method, url, body, answer] of cases) {
+    it(`${name}: ${method} with its body, its answer checked against the contract`, async () => {
+      const { sent, api } = fakeTransport(() => reply(200, answer));
+      assert.deepEqual(await run(api), answer);
+      assert.equal(sent[0]?.method, method);
+      assert.equal(sent[0]?.url, url);
+      assert.deepEqual(sent[0]?.body === undefined ? undefined : JSON.parse(sent[0].body), body);
+
+      const broken = await failureOf(run(fakeTransport(() => reply(200, { unexpected: true })).api));
+      assert.deepEqual(broken.failure, { kind: "unexpected", status: 200 });
+    });
+  }
+
+  it("removes an adjustment, an own dish or the own profile with a DELETE whose answer has no body", async () => {
+    const { sent, api } = fakeTransport(() => reply(204));
+    await api.removeOverride(BRANCH_ID, DISH_ID);
+    await api.removeBranchDish(BRANCH_ID, OWN.id);
+    await api.removeBranchProfile(BRANCH_ID);
+    assert.deepEqual(
+      sent.map((request) => [request.method, request.url, request.body]),
+      [
+        ["DELETE", `${R}/overrides/${DISH_ID}`, undefined],
+        ["DELETE", `${R}/dishes/${OWN.id}`, undefined],
+        ["DELETE", `${R}/profile`, undefined],
+      ],
+    );
+  });
+
+  it("publishes the branch with its draft version and its idempotency key in the header", async () => {
+    const { sent, api } = fakeTransport(() => reply(201, PUBLICATION));
+    assert.deepEqual(await api.publishBranchMenu(BRANCH_ID, { draftVersion: 2 }, "key_0123456789abcdef"), PUBLICATION);
+    assert.deepEqual(sent[0], {
+      method: "POST",
+      url: `${R}/publications`,
+      headers: { "content-type": "application/json", "Idempotency-Key": "key_0123456789abcdef" },
+      body: JSON.stringify({ draftVersion: 2 }),
+    });
+  });
+});

@@ -31,16 +31,16 @@ export function publicationOf(
   };
 }
 
-/** A publication on its way: its request and the idempotency key that goes with it. */
-export interface PublicationAttempt {
-  request: PublishBusinessMenuRequest;
+/**
+ * A publication on its way, of the base menu or of a branch: its request and the
+ * idempotency key that goes with it.
+ */
+export interface PublicationAttempt<Request = PublishBusinessMenuRequest> {
+  request: Request;
   key: string;
 }
 
-const sameRequest = (
-  a: PublishBusinessMenuRequest,
-  b: PublishBusinessMenuRequest,
-) => JSON.stringify(a) === JSON.stringify(b);
+const sameRequest = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 /**
  * The key stays with its request until the publication goes out, so a retry after a lost
@@ -48,11 +48,11 @@ const sameRequest = (
  * (the draft or the confirmations changed) takes a new key: the API refuses an old key
  * with another body (IDEMPOTENCY_KEY_REUSED).
  */
-export function attemptOf(
-  previous: PublicationAttempt | null,
-  request: PublishBusinessMenuRequest,
+export function attemptOf<Request>(
+  previous: PublicationAttempt<Request> | null,
+  request: Request,
   freshKey: () => string,
-): PublicationAttempt {
+): PublicationAttempt<Request> {
   return previous !== null && sameRequest(previous.request, request)
     ? previous
     : { request, key: freshKey() };
@@ -64,6 +64,10 @@ export type PublishProblem =
   | "conflictsChanged"
   | "profileRequired"
   | "keyReused"
+  /** A branch publishes before its business published a base menu. */
+  | "baseNotPublished"
+  /** A branch's own dish is in a category the business has not published yet. */
+  | "categoryNotPublished"
   | "forbidden"
   | "notFound"
   | "invalid"
@@ -74,6 +78,8 @@ const PUBLISH_CODES: Readonly<Record<string, PublishProblem>> = {
   PUBLICATION_CONFLICTS: "conflictsChanged",
   PROFILE_REQUIRED: "profileRequired",
   IDEMPOTENCY_KEY_REUSED: "keyReused",
+  BASE_MENU_NOT_PUBLISHED: "baseNotPublished",
+  CATEGORY_NOT_PUBLISHED: "categoryNotPublished",
 };
 
 export function publishProblemOf(failure: CallFailure): PublishProblem {

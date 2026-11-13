@@ -49,5 +49,13 @@ export const canAdminister = (actor: SessionActor, businessId: string): boolean 
   actor.isSuperadmin ||
   actor.roles.some((role) => role.role === "business_admin" && role.businessId === businessId);
 
+/**
+ * Whether to offer changing a branch's menu: its business's admin, the superadmin and the
+ * branch's own admin (the API's `operate`, ADR-0036). The API still decides.
+ */
+export const canOperateBranch = (actor: SessionActor, branch: { id: string; businessId: string }): boolean =>
+  canAdminister(actor, branch.businessId) ||
+  actor.roles.some((role) => role.role === "branch_admin" && role.branchId === branch.id);
+
 /** Only the superadmin gives a business its place in Miramenu (ADR-0020). */
 export const canCreateBusiness = (actor: SessionActor): boolean => actor.isSuperadmin;
