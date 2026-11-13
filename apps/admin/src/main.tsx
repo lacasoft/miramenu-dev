@@ -5,11 +5,13 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { AdminApiContext } from "./app/api-context";
+import { UploaderContext } from "./app/uploader-context";
 import { App } from "./app/App";
 import { createQueryClient } from "./app/query-client";
 import { parseAdminConfig } from "./config";
 import { t } from "./i18n";
 import { fetchTransport } from "./platform/fetch-transport";
+import { xhrPutFile } from "./platform/upload";
 
 const config = parseAdminConfig(import.meta.env);
 const api = createAdminApi({ baseUrl: config.apiUrl, transport: fetchTransport });
@@ -22,7 +24,9 @@ createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={createQueryClient()}>
       <AdminApiContext value={api}>
-        <App />
+        <UploaderContext value={xhrPutFile}>
+          <App />
+        </UploaderContext>
       </AdminApiContext>
     </QueryClientProvider>
   </StrictMode>,

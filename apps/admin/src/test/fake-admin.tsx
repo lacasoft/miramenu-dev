@@ -4,8 +4,11 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { act, render } from "@testing-library/react";
 import { vi } from "vitest";
 import { AdminApiContext } from "../app/api-context";
+import { UploaderContext } from "../app/uploader-context";
+import type { PutFile } from "../platform/upload";
 import { App } from "../app/App";
 import { createQueryClient } from "../app/query-client";
+import { fakePutFile, mediaApi } from "./fake-media";
 import { menuApi } from "./fake-menu";
 import { worldApi, type World } from "./fake-world";
 
@@ -57,6 +60,7 @@ export function fakeAdminApi({
   const api = {
     ...worldApi(world, () => current),
     ...menuApi(world, () => current),
+    ...mediaApi(world, () => current),
     session: vi.fn(async () => current),
     signIn: vi.fn(async ({ email }: { email: string; password: string }) => {
       const account = accounts[email];
@@ -74,20 +78,25 @@ export function fakeAdminApi({
       return page;
     }),
   };
-  return { api, world, end: () => (current = null) };
+  return { api, world, putFile: fakePutFile(world), end: () => (current = null) };
 }
 
 /** The app at a path, with the real query client and its retry policy, without waiting. */
-export function renderAdmin(api: Partial<AdminApi>, path = "/") {
+export function renderAdmin(api: Partial<AdminApi>, path = "/", putFile?: PutFile) {
   window.history.replaceState(null, "", path);
   const client = createQueryClient();
   client.setDefaultOptions({
     queries: { ...client.getDefaultOptions().queries, retryDelay: 0 },
   });
+  const noStorage: PutFile = async () => {
+    throw new Error("this test gave no storage");
+  };
   render(
     <QueryClientProvider client={client}>
       <AdminApiContext value={api as AdminApi}>
-        <App />
+        <UploaderContext value={putFile ?? noStorage}>
+          <App />
+        </UploaderContext>
       </AdminApiContext>
     </QueryClientProvider>,
   );

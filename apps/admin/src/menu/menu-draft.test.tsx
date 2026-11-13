@@ -11,6 +11,7 @@ import {
   renderAdmin,
   settled,
 } from "../test/fake-admin";
+import { readyMedia } from "../test/fake-media";
 import {
   categoryOf,
   dishOf,
@@ -119,6 +120,7 @@ describe("the base menu's draft", () => {
         ],
         logoId: id(40),
       },
+      media: [readyMedia(40)],
     });
     const { api } = fakeAdminApi({ signedIn: owner, world: world(menu) });
     renderAdmin(api, MENU);

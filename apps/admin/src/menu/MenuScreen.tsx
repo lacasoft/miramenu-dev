@@ -1,4 +1,4 @@
-import { canAdminister, currencyOf, hrefOf } from "@miramenu/admin-core";
+import { canAdminister, currencyOf, hrefOf, mediaPollIntervalOf, mediaStatesOf } from "@miramenu/admin-core";
 import type { SessionActor } from "@miramenu/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { useAdminApi } from "../app/api-context";
@@ -8,6 +8,7 @@ import { t } from "../i18n";
 import { AppLink } from "../ui/AppLink";
 import page from "../ui/page.module.css";
 import { CategoriesSection } from "./CategoriesSection";
+import { MediaProblemsSection } from "./MediaProblemsSection";
 import styles from "./menu.module.css";
 import { ProfileSection } from "./ProfileSection";
 import { PublishSection } from "./PublishSection";
@@ -32,12 +33,15 @@ export function MenuScreen({
   const draft = useQuery({
     queryKey: keys.menuDraft(businessId),
     queryFn: () => api.menuDraft(businessId),
+    // While a photo or video it uses is processing, read it again until it is ready.
+    refetchInterval: (query) => mediaPollIntervalOf(query.state.data?.media ?? []),
   });
   if (business.data === undefined)
     return <LoadState query={business} loading={t("menu.loading")} />;
   if (draft.data === undefined)
     return <LoadState query={draft} loading={t("menu.loading")} />;
   const editable = canAdminister(actor, businessId);
+  const media = new Map(draft.data.media.map((each) => [each.id, each]));
   return (
     <main className={page.page}>
       <AppLink
@@ -63,8 +67,12 @@ export function MenuScreen({
             businessId={businessId}
             profile={draft.data.profile}
             suggestedName={business.data.name}
+            media={media}
             editable={editable}
           />
+          {editable && (
+            <MediaProblemsSection businessId={businessId} states={mediaStatesOf(draft.data.media)} />
+          )}
         </div>
         <CategoriesSection
           businessId={businessId}

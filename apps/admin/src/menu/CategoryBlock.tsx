@@ -5,7 +5,7 @@ import {
   type MenuSection,
   type PositionChange,
 } from "@miramenu/admin-core";
-import type { Category, CreateDishRequest } from "@miramenu/contracts";
+import type { Category, CreateDishRequest, Media } from "@miramenu/contracts";
 import { useState } from "react";
 import { t } from "../i18n";
 import controls from "../ui/controls.module.css";
@@ -25,6 +25,7 @@ export function CategoryBlock({
   section,
   sections,
   currency,
+  media,
   editable,
   onSaid,
   onLost,
@@ -34,6 +35,8 @@ export function CategoryBlock({
   sections: readonly MenuSection[];
   /** The currency of the business's prices; null when its country has none yet. */
   currency: string | null;
+  /** The media the draft uses, by id. */
+  media: ReadonlyMap<string, Media>;
   editable: boolean;
   onSaid: (said: string) => void;
   /** Says, in its list, that the category is gone: this block goes away with it. */
@@ -173,6 +176,7 @@ export function CategoryBlock({
               dish={dish}
               siblings={dishes}
               sections={sections}
+              media={media}
               editable={editable}
               onSaid={onSaid}
               onLost={onLost}

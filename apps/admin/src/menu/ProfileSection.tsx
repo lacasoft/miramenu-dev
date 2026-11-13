@@ -2,16 +2,19 @@ import { nameProblemOf, socialUrlProblemOf } from "@miramenu/admin-core";
 import {
   MENU_LIMITS,
   socialNetworkSchema,
+  type Media,
   type Profile,
   type PutProfileRequest,
   type SocialNetwork,
 } from "@miramenu/contracts";
 import { useRef, useState, type FormEvent } from "react";
+import { useAdminApi } from "../app/api-context";
 import { fieldText } from "../app/problems";
 import { t } from "../i18n";
 import controls from "../ui/controls.module.css";
 import { Field, SelectField } from "../ui/Field";
 import page from "../ui/page.module.css";
+import { MediaSlot } from "./MediaSlot";
 import styles from "./menu.module.css";
 import { menuProblemText, useMenuChange } from "./use-menu-change";
 
@@ -196,13 +199,17 @@ export function ProfileSection({
   businessId,
   profile,
   suggestedName,
+  media,
   editable,
 }: {
   businessId: string;
   profile: Profile | null;
   suggestedName: string;
+  /** The media the draft uses, by id. */
+  media: ReadonlyMap<string, Media>;
   editable: boolean;
 }) {
+  const api = useAdminApi();
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
   return (
@@ -246,8 +253,20 @@ export function ProfileSection({
       ) : profile === null ? (
         <p className={controls.problem}>{t("menu.profileMissing")}</p>
       ) : (
-        <ProfileFacts profile={profile} />
+        <>
+          <ProfileFacts profile={profile} />
+          <MediaSlot
+            businessId={businessId}
+            slot="logo"
+            mediaId={profile.logoId}
+            media={media}
+            name={profile.name}
+            editable={editable}
+            attach={(logoId) => api.putProfile(businessId, { ...profile, logoId })}
+          />
+        </>
       )}
+      {!editing && profile === null && editable && <p className={page.hint}>{t("media.logoNeedsProfile")}</p>}
     </section>
   );
 }
