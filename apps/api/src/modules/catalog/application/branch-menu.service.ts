@@ -30,6 +30,7 @@ import {
 } from './draft-rows';
 import { notFound } from './errors';
 import { assertMediaRef, assertMediaRefs, type MediaScope } from './media-refs';
+import { MediaView, usedMediaIds } from './media-view';
 import { branchDishes, overridesOfBranch, profileOf } from './menu-store';
 import type { DishInput } from './base-menu.service';
 
@@ -66,6 +67,7 @@ export class BranchMenuService {
     @InjectDataSource('catalog') private readonly dataSource: DataSource,
     private readonly access: AccessControl,
     private readonly state: DraftState,
+    private readonly mediaView: MediaView,
   ) {}
 
   async draft(actor: Actor, branchId: string): Promise<BranchMenuDraft> {
@@ -79,12 +81,20 @@ export class BranchMenuService {
         `SELECT draft_version, published_version FROM catalog.branch_state WHERE branch_id = $1`,
         [branch.id],
       );
+      const profile = await profileOf(manager, branch.businessId, branch.id);
+      const dishes = await branchDishes(manager, branch.id);
       return {
         draftVersion: state?.draft_version ?? 0,
         publishedVersion: state?.published_version ?? null,
-        profile: await profileOf(manager, branch.businessId, branch.id),
+        profile,
         overrides: await overridesOfBranch(manager, branch.id),
-        dishes: await branchDishes(manager, branch.id),
+        dishes,
+        // Its own dishes' and profile's media; the base dishes' are in the business draft.
+        media: await this.mediaView.among(
+          manager,
+          branch.businessId,
+          usedMediaIds(profile, dishes),
+        ),
       };
     });
   }

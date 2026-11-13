@@ -1,9 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type {
+  Dish,
   Media,
   MediaFailureReason,
   MediaKind,
   MediaStatus,
+  Profile,
 } from '@miramenu/contracts';
 import type { EntityManager } from 'typeorm';
 import { APP_CONFIG } from '../../../infrastructure/config/config.module';
@@ -32,6 +34,18 @@ export interface MediaRow {
 
 export const MEDIA_COLUMNS = `id, business_id, branch_id, kind, status, content_type, size_bytes,
   failure_reason, variants, processing_since, created_at`;
+
+export /** The media a draft names: its logo and its dishes' photos and videos, once each. */
+function usedMediaIds(
+  profile: Profile | null,
+  dishes: readonly Pick<Dish, 'imageId' | 'videoId'>[],
+): Set<string> {
+  const ids = [
+    profile?.logoId,
+    ...dishes.flatMap((dish) => [dish.imageId, dish.videoId]),
+  ];
+  return new Set(ids.filter((id): id is string => typeof id === 'string'));
+}
 
 /**
  * A medium as the admin sees it: its state, whether it is stalled, and its public
