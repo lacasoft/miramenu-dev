@@ -49,6 +49,6 @@ describe("the admin's catalog", () => {
     assert.equal(admin("shell.greeting", { name: "Ana" }), "Hola, Ana");
     assert.equal(admin("signIn.wait", { seconds: 42 }), "Demasiados intentos. Vuelve a intentar en 42 s.");
     // @ts-expect-error: the diner's keys are not the admin's
-    assert.throws(() => admin("menu.loading"));
+    assert.throws(() => admin("registration.phone"));
   });
 });

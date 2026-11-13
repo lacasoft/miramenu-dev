@@ -14,6 +14,8 @@ export type AdminRoute =
   | { screen: "newBusiness" }
   | { screen: "business"; businessId: string }
   | { screen: "team"; businessId: string }
+  /** The business's base menu: its draft and its publication. */
+  | { screen: "menu"; businessId: string }
   | { screen: "branch"; branchId: string }
   | { screen: "notFound" };
 
@@ -39,6 +41,7 @@ function pageOf(segments: readonly string[]): AdminRoute {
   if (first === "businesses" && second !== undefined && UUID.test(second)) {
     if (third === undefined) return { screen: "business", businessId: second };
     if (third === "team") return { screen: "team", businessId: second };
+    if (third === "menu") return { screen: "menu", businessId: second };
   }
   if (first === "branches" && second !== undefined && UUID.test(second) && third === undefined)
     return { screen: "branch", branchId: second };
@@ -80,6 +83,8 @@ export function hrefOf(route: AdminRoute): string {
       return `/businesses/${route.businessId}`;
     case "team":
       return `/businesses/${route.businessId}/team`;
+    case "menu":
+      return `/businesses/${route.businessId}/menu`;
     case "branch":
       return `/branches/${route.branchId}`;
     case "home":

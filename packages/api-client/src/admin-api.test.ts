@@ -238,3 +238,98 @@ describe("the admin's businesses, branches and team", () => {
     assert.equal(taken.failure.kind === "http" && taken.failure.code, "SLUG_TAKEN");
   });
 });
+
+describe("the admin's base menu", () => {
+  const BUSINESS_ID = "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d";
+  const BRANCH_ID = "6f1c2e0a-8b3d-4c5e-9f7a-1b2c3d4e5f60";
+  const CATEGORY = { id: "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f", name: "Tacos", position: 0 };
+  const DISH = {
+    id: "2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f60",
+    categoryId: CATEGORY.id,
+    name: "Pastor",
+    description: "",
+    priceCents: 8550,
+    currency: "MXN",
+    imageId: null,
+    videoId: null,
+    position: 0,
+  };
+  const PROFILE = {
+    name: "La Fonda",
+    socialLinks: [{ network: "instagram", url: "https://instagram.com/lafonda" }],
+    logoId: null,
+  };
+  const DRAFT = {
+    draftVersion: 4,
+    publishedVersion: null,
+    profile: PROFILE,
+    categories: [CATEGORY],
+    dishes: [DISH],
+    conflicts: [{ branchId: BRANCH_ID, dishId: DISH.id, reason: "price_changed", dishName: "Pastor" }],
+  };
+  const PUBLICATION = {
+    id: "3e4f5a6b-7c8d-4e9f-8a1b-2c3d4e5f6a7b",
+    scope: "business",
+    version: 1,
+    publishedAt: "2026-11-13T18:00:00.000Z",
+    menus: [{ branchId: BRANCH_ID, version: 1 }],
+  };
+  const B = `https://api.mirame.nu/admin/businesses/${BUSINESS_ID}`;
+
+  const cases: [string, (api: ReturnType<typeof createAdminApi>) => Promise<unknown>, string, string, unknown, unknown][] = [
+    ["menuDraft", (api) => api.menuDraft(BUSINESS_ID), "GET", `${B}/menu-draft`, undefined, DRAFT],
+    ["putProfile", (api) => api.putProfile(BUSINESS_ID, PROFILE as never), "PUT", `${B}/profile`, PROFILE, PROFILE],
+    ["createCategory", (api) => api.createCategory(BUSINESS_ID, { name: "Tacos" }), "POST", `${B}/categories`, { name: "Tacos" }, CATEGORY],
+    ["updateCategory", (api) => api.updateCategory(BUSINESS_ID, CATEGORY.id, { position: 2 }), "PATCH", `${B}/categories/${CATEGORY.id}`, { position: 2 }, CATEGORY],
+    ["createDish", (api) => api.createDish(BUSINESS_ID, { categoryId: CATEGORY.id, name: "Pastor", priceCents: 8550, currency: "MXN" }), "POST", `${B}/dishes`, { categoryId: CATEGORY.id, name: "Pastor", priceCents: 8550, currency: "MXN" }, DISH],
+    ["updateDish", (api) => api.updateDish(BUSINESS_ID, DISH.id, { priceCents: 9000 }), "PATCH", `${B}/dishes/${DISH.id}`, { priceCents: 9000 }, DISH],
+  ];
+
+  for (const [name, run, method, url, body, answer] of cases) {
+    it(`${name}: ${method} with its body, its answer checked against the contract`, async () => {
+      const { sent, api } = fakeTransport(() => reply(200, answer));
+      assert.deepEqual(await run(api), answer);
+      assert.equal(sent[0]?.method, method);
+      assert.equal(sent[0]?.url, url);
+      assert.deepEqual(sent[0]?.body === undefined ? undefined : JSON.parse(sent[0].body), body);
+
+      const broken = await failureOf(run(fakeTransport(() => reply(200, { unexpected: true })).api));
+      assert.deepEqual(broken.failure, { kind: "unexpected", status: 200 });
+    });
+  }
+
+  it("removes a category or a dish with a DELETE whose answer has no body", async () => {
+    const { sent, api } = fakeTransport(() => reply(204));
+    await api.removeCategory(BUSINESS_ID, CATEGORY.id);
+    await api.removeDish(BUSINESS_ID, DISH.id);
+    assert.deepEqual(sent, [
+      { method: "DELETE", url: `${B}/categories/${CATEGORY.id}`, headers: {} },
+      { method: "DELETE", url: `${B}/dishes/${DISH.id}`, headers: {} },
+    ]);
+  });
+
+  it("publishes with the reviewed draft version and its idempotency key in the header", async () => {
+    const { sent, api } = fakeTransport(() => reply(201, PUBLICATION));
+    const request = { draftVersion: 4, confirmedConflicts: [{ branchId: BRANCH_ID, dishId: DISH.id }] };
+    assert.deepEqual(await api.publishBusinessMenu(BUSINESS_ID, request, "key_0123456789abcdef"), PUBLICATION);
+    assert.deepEqual(sent[0], {
+      method: "POST",
+      url: `${B}/publications`,
+      headers: { "content-type": "application/json", "Idempotency-Key": "key_0123456789abcdef" },
+      body: JSON.stringify(request),
+    });
+
+    const changed = await failureOf(
+      fakeTransport(() => reply(409, envelope("DRAFT_CHANGED"))).api.publishBusinessMenu(BUSINESS_ID, request, "key_0123456789abcdef"),
+    );
+    assert.equal(changed.failure.kind === "http" && changed.failure.code, "DRAFT_CHANGED");
+  });
+
+  it("never trusts a conflict without the dish's name", async () => {
+    const { dishName: _, ...unnamed } = DRAFT.conflicts[0]!;
+    const broken = await failureOf(
+      fakeTransport(() => reply(200, { ...DRAFT, conflicts: [unnamed] })).api.menuDraft(BUSINESS_ID),
+    );
+    assert.deepEqual(broken.failure, { kind: "unexpected", status: 200 });
+  });
+});

@@ -1,31 +1,48 @@
 import {
   branchPageSchema,
   branchSchema,
+  businessMenuDraftSchema,
   businessPageSchema,
   businessSchema,
   businessUserPageSchema,
   businessUserSchema,
+  categorySchema,
   createdBusinessSchema,
+  dishSchema,
+  IDEMPOTENCY_KEY_HEADER,
   invitationDeliverySchema,
   invitedUserSchema,
+  profileSchema,
+  publicationSchema,
   qrLinkSchema,
   sessionActorSchema,
   type Branch,
   type Business,
+  type BusinessMenuDraft,
   type BusinessUser,
+  type Category,
   type CreateBranchRequest,
   type CreateBusinessRequest,
+  type CreateCategoryRequest,
   type CreatedBusiness,
+  type CreateDishRequest,
+  type Dish,
   type InvitationDelivery,
   type InvitedUser,
   type InviteUserRequest,
   type LoginRequest,
   type Page,
+  type Profile,
+  type Publication,
+  type PublishBusinessMenuRequest,
+  type PutProfileRequest,
   type QrLink,
   type RoleTarget,
   type SessionActor,
   type UpdateBranchRequest,
   type UpdateBusinessRequest,
+  type UpdateCategoryRequest,
+  type UpdateDishRequest,
 } from "@miramenu/contracts";
 import { isUnauthorized } from "./api-error.ts";
 import { requester } from "./requester.ts";
@@ -171,6 +188,68 @@ export function createAdminApi({ baseUrl, transport }: AdminApiOptions) {
       return call(
         at("POST", `/admin/businesses/${id(businessId)}/users/${id(userId)}/invitation`),
         invitationDeliverySchema,
+      );
+    },
+
+    /**
+     * The business's base menu as it stands in the draft, with the conflicts publishing it
+     * would cause with its branches' adjustments (ADR-0036). Its branch admins may read it.
+     */
+    menuDraft(businessId: string): Promise<BusinessMenuDraft> {
+      return call(at("GET", `/admin/businesses/${id(businessId)}/menu-draft`), businessMenuDraftSchema);
+    },
+
+    /** Replaces the profile; a missing logoId detaches the logo, so send the current one. */
+    putProfile(businessId: string, profile: PutProfileRequest): Promise<Profile> {
+      return call(json("PUT", `/admin/businesses/${id(businessId)}/profile`, profile), profileSchema);
+    },
+
+    /** A 409 MENU_LIMIT_REACHED past the business's categories. */
+    createCategory(businessId: string, category: CreateCategoryRequest): Promise<Category> {
+      return call(json("POST", `/admin/businesses/${id(businessId)}/categories`, category), categorySchema);
+    },
+
+    updateCategory(businessId: string, categoryId: string, update: UpdateCategoryRequest): Promise<Category> {
+      return call(
+        json("PATCH", `/admin/businesses/${id(businessId)}/categories/${id(categoryId)}`, update),
+        categorySchema,
+      );
+    },
+
+    /** A 409 CATEGORY_IN_USE while it holds dishes, of the business or of a branch. */
+    removeCategory(businessId: string, categoryId: string): Promise<void> {
+      return act(at("DELETE", `/admin/businesses/${id(businessId)}/categories/${id(categoryId)}`));
+    },
+
+    /** A 404 CATEGORY_NOT_FOUND when its category is gone; 409 MENU_LIMIT_REACHED past the dishes. */
+    createDish(businessId: string, dish: CreateDishRequest): Promise<Dish> {
+      return call(json("POST", `/admin/businesses/${id(businessId)}/dishes`, dish), dishSchema);
+    },
+
+    updateDish(businessId: string, dishId: string, update: UpdateDishRequest): Promise<Dish> {
+      return call(json("PATCH", `/admin/businesses/${id(businessId)}/dishes/${id(dishId)}`, update), dishSchema);
+    },
+
+    /** The branches' adjustments of it become conflicts until the business publishes. */
+    removeDish(businessId: string, dishId: string): Promise<void> {
+      return act(at("DELETE", `/admin/businesses/${id(businessId)}/dishes/${id(dishId)}`));
+    },
+
+    /**
+     * Publishes the reviewed draft to every branch (ADR-0036). The same key retried gives
+     * back the first publication, so a lost answer can be asked for again; the key with
+     * another request is a 422 IDEMPOTENCY_KEY_REUSED. A 409 DRAFT_CHANGED,
+     * PUBLICATION_CONFLICTS or PROFILE_REQUIRED says what to review first.
+     */
+    publishBusinessMenu(
+      businessId: string,
+      request: PublishBusinessMenuRequest,
+      idempotencyKey: string,
+    ): Promise<Publication> {
+      const publish = json("POST", `/admin/businesses/${id(businessId)}/publications`, request);
+      return call(
+        { ...publish, headers: { ...publish.headers, [IDEMPOTENCY_KEY_HEADER]: idempotencyKey } },
+        publicationSchema,
       );
     },
 

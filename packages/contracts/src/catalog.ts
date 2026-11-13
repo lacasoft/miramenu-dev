@@ -259,6 +259,8 @@ export const publishedMenuSchema = z.strictObject({
   categories: z.array(menuCategorySchema),
 });
 
+export type SocialNetwork = z.infer<typeof socialNetworkSchema>;
+export type SocialLink = z.infer<typeof socialLinkSchema>;
 export type Profile = z.infer<typeof profileSchema>;
 export type PutProfileRequest = z.infer<typeof putProfileRequestSchema>;
 export type MenuProfile = z.infer<typeof menuProfileSchema>;
@@ -271,6 +273,14 @@ export type PublicationConflict = z.infer<typeof publicationConflictSchema>;
 export type BusinessMenuDraft = z.infer<typeof businessMenuDraftSchema>;
 export type BranchMenuDraft = z.infer<typeof branchMenuDraftSchema>;
 export type Publication = z.infer<typeof publicationSchema>;
+/** What a client sends: fields with a default may be left out. */
+export type CreateCategoryRequest = z.input<typeof createCategoryRequestSchema>;
+export type UpdateCategoryRequest = z.input<typeof updateCategoryRequestSchema>;
+export type CreateDishRequest = z.input<typeof createDishRequestSchema>;
+export type UpdateDishRequest = z.input<typeof updateDishRequestSchema>;
+export type PublishBusinessMenuRequest = z.input<
+  typeof publishBusinessMenuRequestSchema
+>;
 export type MenuDish = z.infer<typeof menuDishSchema>;
 export type MenuCategory = z.infer<typeof menuCategorySchema>;
 export type PublishedMenu = z.infer<typeof publishedMenuSchema>;
