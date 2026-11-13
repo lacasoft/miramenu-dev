@@ -6,13 +6,15 @@ import {
   type MenuSection,
   type PositionChange,
 } from "@miramenu/admin-core";
-import type { Dish, UpdateDishRequest } from "@miramenu/contracts";
+import type { Dish, Media, UpdateDishRequest } from "@miramenu/contracts";
 import { formatPrice } from "@miramenu/i18n";
 import { useState } from "react";
+import { useAdminApi } from "../app/api-context";
 import { t } from "../i18n";
 import controls from "../ui/controls.module.css";
 import page from "../ui/page.module.css";
 import { DishForm } from "./DishForm";
+import { MediaSlot } from "./MediaSlot";
 import styles from "./menu.module.css";
 import { MoveButtons } from "./MoveButtons";
 import { menuProblemText, useMenuChange } from "./use-menu-change";
@@ -32,6 +34,7 @@ export function DishItem({
   dish,
   siblings,
   sections,
+  media,
   editable,
   onSaid,
   onLost,
@@ -41,11 +44,14 @@ export function DishItem({
   /** The dishes of its category, in order. */
   siblings: readonly Dish[];
   sections: readonly MenuSection[];
+  /** The media the draft uses, by id. */
+  media: ReadonlyMap<string, Media>;
   editable: boolean;
   onSaid: (said: string) => void;
   /** Says, in its list, that the dish is gone: this item goes away with it. */
   onLost: (text: string) => void;
 }) {
+  const api = useAdminApi();
   const [action, setAction] = useState<Action>("idle");
   const lost = { when: ["gone"] as const, say: onLost };
   const edit = useMenuChange(
@@ -104,6 +110,26 @@ export function DishItem({
       {dish.description !== "" && (
         <p className={page.hint}>{dish.description}</p>
       )}
+      <div className={styles.slots}>
+        <MediaSlot
+          businessId={businessId}
+          slot="photo"
+          mediaId={dish.imageId}
+          media={media}
+          name={dish.name}
+          editable={editable}
+          attach={(imageId) => api.updateDish(businessId, dish.id, { imageId })}
+        />
+        <MediaSlot
+          businessId={businessId}
+          slot="video"
+          mediaId={dish.videoId}
+          media={media}
+          name={dish.name}
+          editable={editable}
+          attach={(videoId) => api.updateDish(businessId, dish.id, { videoId })}
+        />
+      </div>
       {action === "edit" && (
         <DishForm
           initial={valuesOf(dish)}

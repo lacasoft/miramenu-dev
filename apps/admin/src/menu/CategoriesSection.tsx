@@ -35,6 +35,7 @@ export function CategoriesSection({
     },
   );
   const sections = menuSectionsOf(draft);
+  const media = new Map(draft.media.map((each) => [each.id, each]));
 
   return (
     <section
@@ -89,6 +90,7 @@ export function CategoriesSection({
               section={section}
               sections={sections}
               currency={currency}
+              media={media}
               editable={editable}
               onSaid={notice}
               onLost={lost}

@@ -1,0 +1,71 @@
+/* A photo, video or logo slot: its name, what diners will see, and its controls. */
+.slot {
+  position: relative;
+  display: grid;
+  gap: var(--space-8);
+  align-content: start;
+}
+
+.label {
+  margin: 0;
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+  font-weight: 600;
+}
+
+.thumb {
+  display: block;
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius-field);
+  object-fit: cover;
+  background-color: var(--dashboard-grid);
+}
+
+/* Something about the medium needs the admin: said in the negative pair, never by color alone. */
+.trouble {
+  margin: 0;
+  color: var(--dashboard-negative-text);
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+}
+
+.progress {
+  display: grid;
+  gap: var(--space-4);
+  font-size: var(--text-label);
+  line-height: var(--text-label-line-height);
+}
+
+.progress progress {
+  width: 100%;
+  accent-color: var(--dashboard-ink);
+}
+
+.start {
+  justify-self: start;
+}
+
+/* The file input stays in the page, focusable but unseen: its label is the button. */
+.file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.pick {
+  cursor: pointer;
+}
+
+.file:focus-visible + .pick {
+  outline: 3px solid var(--dashboard-ring);
+  outline-offset: 2px;
+}
+
+.file:disabled + .pick {
+  cursor: not-allowed;
+  opacity: 0.6;
+}

@@ -77,3 +77,23 @@ export {
   type PublicationAttempt,
   type PublishProblem,
 } from "./publication.ts";
+export {
+  acceptOf,
+  afterUploadFailure,
+  MEDIA_POLL_MS,
+  mediaFileProblemOf,
+  mediaPollIntervalOf,
+  mediaRequestOf,
+  mediaStateOf,
+  mediaStatesOf,
+  NEW_UPLOAD,
+  previewOf,
+  sourceFor,
+  uploadStepOf,
+  type FileFacts,
+  type MediaFileProblem,
+  type MediaState,
+  type UploadProblem,
+  type UploadProgress,
+  type UploadStep,
+} from "./media.ts";

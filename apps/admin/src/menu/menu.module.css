@@ -114,3 +114,10 @@
   padding: 0;
   font-weight: 600;
 }
+
+/* A dish's photo and video side by side, stacked when they do not fit. */
+.slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--space-16);
+}

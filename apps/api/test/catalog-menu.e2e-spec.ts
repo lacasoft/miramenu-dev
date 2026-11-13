@@ -80,6 +80,7 @@ describe('Catalog drafts and the published menu (e2e)', () => {
         categories: [],
         dishes: [],
         conflicts: [],
+        media: [],
       });
     });
 

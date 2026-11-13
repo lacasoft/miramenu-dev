@@ -8,10 +8,13 @@ import {
   businessUserSchema,
   categorySchema,
   createdBusinessSchema,
+  createdMediaSchema,
   dishSchema,
   IDEMPOTENCY_KEY_HEADER,
   invitationDeliverySchema,
   invitedUserSchema,
+  mediaPageSchema,
+  mediaSchema,
   profileSchema,
   publicationSchema,
   qrLinkSchema,
@@ -25,12 +28,15 @@ import {
   type CreateBusinessRequest,
   type CreateCategoryRequest,
   type CreatedBusiness,
+  type CreatedMedia,
+  type CreateMediaRequest,
   type CreateDishRequest,
   type Dish,
   type InvitationDelivery,
   type InvitedUser,
   type InviteUserRequest,
   type LoginRequest,
+  type Media,
   type Page,
   type Profile,
   type Publication,
@@ -251,6 +257,29 @@ export function createAdminApi({ baseUrl, transport }: AdminApiOptions) {
         { ...publish, headers: { ...publish.headers, [IDEMPOTENCY_KEY_HEADER]: idempotencyKey } },
         publicationSchema,
       );
+    },
+
+    /**
+     * A new medium of the business and a short PUT, signed with its type and size, to
+     * upload the original straight to storage: the API never receives the bytes (ADR-0038).
+     */
+    createMedia(businessId: string, request: CreateMediaRequest): Promise<CreatedMedia> {
+      return call(json("POST", `/admin/businesses/${id(businessId)}/media`, request), createdMediaSchema);
+    },
+
+    /**
+     * Confirms the upload, which queues its optimization. Safe to repeat. A 409
+     * MEDIA_NOT_UPLOADED before the file arrived; a 422 MEDIA_REJECTED when what arrived
+     * is not what was signed, which fails the medium.
+     */
+    completeMedia(businessId: string, mediaId: string): Promise<Media> {
+      return call(at("POST", `/admin/businesses/${id(businessId)}/media/${id(mediaId)}/complete`), mediaSchema);
+    },
+
+    /** The business's media that failed or are stalled, newest first, a page at a time. */
+    mediaProblems(businessId: string, cursor?: string): Promise<Page<Media>> {
+      const page = cursor === undefined ? "" : `&cursor=${encodeURIComponent(cursor)}`;
+      return call(at("GET", `/admin/businesses/${id(businessId)}/media?problem=true${page}`), mediaPageSchema);
     },
 
     /**

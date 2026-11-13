@@ -266,6 +266,7 @@ describe("the admin's base menu", () => {
     categories: [CATEGORY],
     dishes: [DISH],
     conflicts: [{ branchId: BRANCH_ID, dishId: DISH.id, reason: "price_changed", dishName: "Pastor" }],
+    media: [],
   };
   const PUBLICATION = {
     id: "3e4f5a6b-7c8d-4e9f-8a1b-2c3d4e5f6a7b",
@@ -331,5 +332,67 @@ describe("the admin's base menu", () => {
       fakeTransport(() => reply(200, { ...DRAFT, conflicts: [unnamed] })).api.menuDraft(BUSINESS_ID),
     );
     assert.deepEqual(broken.failure, { kind: "unexpected", status: 200 });
+  });
+});
+
+describe("the admin's media (ADR-0038)", () => {
+  const BUSINESS_ID = "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d";
+  const B = `https://api.mirame.nu/admin/businesses/${BUSINESS_ID}`;
+  const MEDIA = {
+    id: "4f5a6b7c-8d9e-4f0a-9b1c-2d3e4f5a6b7c",
+    kind: "image",
+    branchId: null,
+    status: "pending_upload",
+    contentType: "image/jpeg",
+    sizeBytes: 2048,
+    failureReason: null,
+    stalled: false,
+    image: null,
+    video: null,
+    createdAt: "2026-11-13T18:00:00.000Z",
+  };
+  const UPLOAD = {
+    url: "https://s3.example.test/originals/x?X-Amz-Signature=abc",
+    method: "PUT",
+    headers: { "Content-Type": "image/jpeg" },
+    expiresAt: "2026-11-13T18:10:00.000Z",
+  };
+
+  it("asks to sign an upload with the file's kind, type and size", async () => {
+    const { sent, api } = fakeTransport(() => reply(201, { media: MEDIA, upload: UPLOAD }));
+    const request = { kind: "image", contentType: "image/jpeg", sizeBytes: 2048 } as const;
+    assert.deepEqual(await api.createMedia(BUSINESS_ID, request), { media: MEDIA, upload: UPLOAD });
+    assert.deepEqual(sent[0], {
+      method: "POST",
+      url: `${B}/media`,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(request),
+    });
+    const broken = await failureOf(
+      fakeTransport(() => reply(201, { media: MEDIA, upload: { ...UPLOAD, method: "POST" } })).api.createMedia(BUSINESS_ID, request),
+    );
+    assert.deepEqual(broken.failure, { kind: "unexpected", status: 201 });
+  });
+
+  it("confirms an upload with a POST without a body", async () => {
+    const processing = { ...MEDIA, status: "processing" };
+    const { sent, api } = fakeTransport(() => reply(200, processing));
+    assert.deepEqual(await api.completeMedia(BUSINESS_ID, MEDIA.id), processing);
+    assert.deepEqual(sent[0], { method: "POST", url: `${B}/media/${MEDIA.id}/complete`, headers: {} });
+    const early = await failureOf(
+      fakeTransport(() => reply(409, envelope("MEDIA_NOT_UPLOADED"))).api.completeMedia(BUSINESS_ID, MEDIA.id),
+    );
+    assert.equal(early.failure.kind === "http" && early.failure.code, "MEDIA_NOT_UPLOADED");
+  });
+
+  it("pages the media with a problem", async () => {
+    const page = { items: [{ ...MEDIA, status: "failed", failureReason: "too_long" }], nextCursor: "c_2-x" };
+    const { sent, api } = fakeTransport(() => reply(200, page));
+    assert.deepEqual(await api.mediaProblems(BUSINESS_ID), page);
+    await api.mediaProblems(BUSINESS_ID, "c_2-x");
+    assert.deepEqual(
+      sent.map((request) => request.url),
+      [`${B}/media?problem=true`, `${B}/media?problem=true&cursor=c_2-x`],
+    );
   });
 });

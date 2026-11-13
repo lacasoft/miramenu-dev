@@ -6,9 +6,6 @@ import {
   type CreateMediaRequest,
   GENERIC_ERROR_CODES,
   type Media,
-  type MediaFailureReason,
-  type MediaKind,
-  type MediaStatus,
   type Page,
 } from '@miramenu/contracts';
 import type { DataSource, EntityManager } from 'typeorm';
@@ -25,15 +22,11 @@ import {
 } from '../../../infrastructure/http/keyset-cursor';
 import { ObjectStorage } from '../../../infrastructure/storage/object-storage';
 import { AccessControl, type Actor } from '../../business-access';
-import {
-  isStalled,
-  type MediaVariants,
-  resolveVariants,
-} from '../domain/media-rules';
 import { DraftState } from './draft-state';
 import { conflict, mediaRejected, notFound } from './errors';
 import { originalKey } from './media-keys';
 import { MediaQueue } from './media-queue';
+import { MEDIA_COLUMNS, type MediaRow, MediaView } from './media-view';
 import type { MediaScope } from './media-refs';
 
 /** Who uploads: the business (its admin) or one of its branches (its branch admin). */
@@ -44,23 +37,6 @@ export interface MediaListQuery {
   cursor?: string;
   problem?: boolean;
 }
-
-interface MediaRow {
-  id: string;
-  business_id: string;
-  branch_id: string | null;
-  kind: MediaKind;
-  status: MediaStatus;
-  content_type: string;
-  size_bytes: number;
-  failure_reason: MediaFailureReason | null;
-  variants: MediaVariants | null;
-  processing_since: Date | null;
-  created_at: Date;
-}
-
-const MEDIA_COLUMNS = `id, business_id, branch_id, kind, status, content_type, size_bytes,
-  failure_reason, variants, processing_since, created_at`;
 
 /**
  * Media of a business (ADR-0006, ADR-0038). The API never receives the bytes: it creates
@@ -75,6 +51,7 @@ export class MediaService {
     private readonly state: DraftState,
     private readonly storage: ObjectStorage,
     private readonly queue: MediaQueue,
+    private readonly view: MediaView,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
@@ -109,7 +86,7 @@ export class MediaService {
         },
       );
       return {
-        media: this.toMedia(row),
+        media: this.view.of(row),
         upload: {
           url: upload.url,
           method: 'PUT',
@@ -152,7 +129,7 @@ export class MediaService {
         );
       }
     }
-    return this.toMedia(outcome.row);
+    return this.view.of(outcome.row);
   }
 
   /**
@@ -189,7 +166,7 @@ export class MediaService {
     return toPage(
       rows.map((row) => ({ ...row, createdAt: row.created_at })),
       query.limit,
-      (row) => this.toMedia(row),
+      (row) => this.view.of(row),
     );
   }
 
@@ -264,29 +241,5 @@ export class MediaService {
           id: scope.branchId,
           businessId: scope.businessId,
         });
-  }
-
-  private toMedia(row: MediaRow): Media {
-    const resolved = row.variants
-      ? resolveVariants(row.variants, (key) => this.storage.publicUrl(key))
-      : { image: null, video: null };
-    return {
-      id: row.id,
-      kind: row.kind,
-      branchId: row.branch_id,
-      status: row.status,
-      contentType: row.content_type,
-      sizeBytes: row.size_bytes,
-      failureReason: row.failure_reason,
-      stalled: isStalled(
-        row.status,
-        row.processing_since,
-        new Date(),
-        this.config.media.stalledMinutes,
-      ),
-      image: resolved.image,
-      video: resolved.video,
-      createdAt: row.created_at.toISOString(),
-    };
   }
 }

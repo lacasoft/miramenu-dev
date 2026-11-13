@@ -4,6 +4,8 @@ import type {
   CreateCategoryRequest,
   CreateDishRequest,
   Dish,
+  Media,
+  MediaKind,
   Profile,
   Publication,
   PublicationConflict,
@@ -29,6 +31,10 @@ export interface MenuState {
   usedByBranches: string[];
   /** Each idempotency key with the request it carried and what it published. */
   publications: Map<string, { request: string; publication: Publication }>;
+  /** The business's media, in any state. */
+  media: Media[];
+  /** The media whose file reached storage. */
+  stored: string[];
 }
 
 export const emptyMenu = (extra: Partial<MenuState> = {}): MenuState => ({
@@ -40,6 +46,8 @@ export const emptyMenu = (extra: Partial<MenuState> = {}): MenuState => ({
   conflicts: [],
   usedByBranches: [],
   publications: new Map(),
+  media: [],
+  stored: [],
   ...extra,
 });
 
@@ -105,6 +113,19 @@ export function menuApi(world: World, actor: () => SessionActor | null) {
     if (category === undefined) throw httpError(404, code);
     return category;
   };
+  /** A medium named in a change: the API's checks (media-refs.ts). */
+  const usable = (menu: MenuState, mediaId: string | null | undefined, kind: MediaKind) => {
+    if (mediaId === null || mediaId === undefined) return;
+    const found = menu.media.find((each) => each.id === mediaId);
+    if (found === undefined) throw httpError(404, "MEDIA_NOT_FOUND");
+    if (found.kind !== kind) throw httpError(422, "MEDIA_KIND_MISMATCH");
+    if (found.status === "pending_upload") throw httpError(409, "MEDIA_NOT_UPLOADED");
+    if (found.status === "failed") throw httpError(409, "MEDIA_FAILED");
+  };
+  const usedMedia = (menu: MenuState) => {
+    const ids = new Set([menu.profile?.logoId, ...menu.dishes.flatMap((dish) => [dish.imageId, dish.videoId])]);
+    return menu.media.filter((each) => ids.has(each.id));
+  };
   const dishIn = (menu: MenuState, dishId: string) => {
     const dish = menu.dishes.find((each) => each.id === dishId);
     if (dish === undefined) throw httpError(404, "NOT_FOUND");
@@ -122,14 +143,14 @@ export function menuApi(world: World, actor: () => SessionActor | null) {
         categories: [...menu.categories].sort(byOrder),
         dishes: [...menu.dishes].sort(byOrder),
         conflicts: menu.conflicts,
+        media: usedMedia(menu),
       });
     }),
     putProfile: vi.fn(async (businessId: string, profile: PutProfileRequest) =>
-      edit(
-        businessId,
-        (menu) =>
-          (menu.profile = { ...profile, logoId: profile.logoId ?? null }),
-      ),
+      edit(businessId, (menu) => {
+        usable(menu, profile.logoId, "image");
+        return (menu.profile = { ...profile, logoId: profile.logoId ?? null });
+      }),
     ),
     createCategory: vi.fn(
       async (businessId: string, input: CreateCategoryRequest) =>
@@ -173,6 +194,8 @@ export function menuApi(world: World, actor: () => SessionActor | null) {
         if (menu.dishes.length >= LIMITS.dishes)
           throw httpError(409, "MENU_LIMIT_REACHED");
         categoryIn(menu, input.categoryId, "CATEGORY_NOT_FOUND");
+        usable(menu, input.imageId, "image");
+        usable(menu, input.videoId, "video");
         const siblings = menu.dishes.filter(
           (dish) => dish.categoryId === input.categoryId,
         );
@@ -196,6 +219,8 @@ export function menuApi(world: World, actor: () => SessionActor | null) {
         edit(businessId, (menu) => {
           if (update.categoryId !== undefined)
             categoryIn(menu, update.categoryId, "CATEGORY_NOT_FOUND");
+          usable(menu, update.imageId, "image");
+          usable(menu, update.videoId, "video");
           return { ...Object.assign(dishIn(menu, dishId), defined(update)) };
         }),
     ),
