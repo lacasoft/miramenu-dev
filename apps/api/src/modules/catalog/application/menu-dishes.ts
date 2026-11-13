@@ -23,4 +23,14 @@ export class MenuDishes {
   async isOnMenu(branchId: string, dishId: string): Promise<boolean> {
     return (await this.dishIdsOf(branchId)).has(dishId);
   }
+
+  /** The names of the dishes on the branch's published menu, by id: what diners read. */
+  async namesOf(branchId: string): Promise<ReadonlyMap<string, string>> {
+    const menu = await this.menus.find(branchId);
+    return new Map(
+      (menu?.categories ?? []).flatMap((category) =>
+        category.dishes.map((dish) => [dish.id, dish.name] as const),
+      ),
+    );
+  }
 }

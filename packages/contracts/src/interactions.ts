@@ -70,6 +70,8 @@ export const moderationItemSchema = z.strictObject({
   id: z.uuid(),
   branchId: z.uuid(),
   dishId: z.uuid(),
+  /** The dish's name on the branch's published menu; null once it left it (hidden or removed). */
+  dishName: z.string().nullable(),
   text: z.string(),
   author: authorSchema,
   version: z.number().int().positive(),
