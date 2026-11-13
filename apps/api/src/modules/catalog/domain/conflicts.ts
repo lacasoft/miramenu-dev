@@ -4,6 +4,7 @@ import type { BaseSnapshot, SnapshotOverride } from './menu-snapshot';
 /** A base dish as it stands in the business's draft. */
 export interface DraftBaseDish {
   id: string;
+  name: string;
   priceCents: number;
   removed: boolean;
 }
@@ -56,6 +57,7 @@ export function findConflicts(input: ConflictInput): PublicationConflict[] {
           branchId: branch.branchId,
           dishId,
           reason: 'dish_removed',
+          dishName: dish.name,
         });
         continue;
       }
@@ -71,6 +73,7 @@ export function findConflicts(input: ConflictInput): PublicationConflict[] {
           branchId: branch.branchId,
           dishId,
           reason: 'price_changed',
+          dishName: dish.name,
         });
       }
     }

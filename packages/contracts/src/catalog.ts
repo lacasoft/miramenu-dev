@@ -169,6 +169,8 @@ export const conflictRefSchema = z.strictObject({
 
 export const publicationConflictSchema = conflictRefSchema.extend({
   reason: conflictReasonSchema,
+  /** The dish's name in the draft, so the admin knows which one, even a removed one. */
+  dishName: z.string(),
 });
 
 export const businessMenuDraftSchema = z.strictObject({
