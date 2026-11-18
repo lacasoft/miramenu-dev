@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { formatDuration, formatPrice, formatRelativeTime } from "./format.ts";
+import {
+  formatCount,
+  formatDuration,
+  formatPercent,
+  formatPrice,
+  formatRelativeTime,
+  formatSeconds,
+  formatShortDay,
+  formatSignedPercent,
+} from "./format.ts";
 
 describe("formatPrice", () => {
   it("formats centavos as pesos for Mexico", () => {
@@ -37,5 +46,28 @@ describe("formatRelativeTime", () => {
     assert.equal(formatRelativeTime(ago(3 * 3600), NOW), "hace 3 horas");
     assert.equal(formatRelativeTime(ago(24 * 3600), NOW), "ayer");
     assert.equal(formatRelativeTime(ago(14 * 24 * 3600), NOW), "hace 2 semanas");
+  });
+});
+
+describe("the dashboard's figures, for Mexico", () => {
+  it("groups counts and writes shares as percentages", () => {
+    assert.equal(formatCount(1284), "1,284");
+    assert.equal(formatCount(0), "0");
+    assert.equal(formatPercent(0.375), new Intl.NumberFormat("es-MX", { style: "percent" }).format(0.38));
+    assert.match(formatPercent(0.375), /^38\s?%$/);
+  });
+
+  it("signs a change, and never shows minus zero", () => {
+    assert.match(formatSignedPercent(0.2), /^\+20\s?%$/);
+    assert.match(formatSignedPercent(-0.084), /^-8\s?%$/);
+    assert.match(formatSignedPercent(0), /^0\s?%$/);
+    assert.match(formatSignedPercent(-0.001), /^-?0\s?%$/);
+  });
+
+  it("writes an average exposure in seconds with one decimal, and a day short", () => {
+    assert.equal(formatSeconds(3412), "3.4 s");
+    assert.equal(formatSeconds(0), "0.0 s");
+    assert.equal(formatShortDay("2026-11-13"), "13 nov");
+    assert.equal(formatShortDay("2026-01-02"), "2 ene");
   });
 });

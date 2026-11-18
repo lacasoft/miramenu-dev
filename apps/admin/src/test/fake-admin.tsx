@@ -11,6 +11,7 @@ import { createQueryClient } from "../app/query-client";
 import { branchMenuApi } from "./fake-branch-menu";
 import { fakePutFile, mediaApi } from "./fake-media";
 import { menuApi } from "./fake-menu";
+import { metricsApi } from "./fake-metrics";
 import { moderationApi } from "./fake-moderation";
 import { worldApi, type World } from "./fake-world";
 
@@ -65,6 +66,7 @@ export function fakeAdminApi({
     ...mediaApi(world, () => current),
     ...branchMenuApi(world, () => current),
     ...moderationApi(world, () => current),
+    ...metricsApi(world, () => current),
     session: vi.fn(async () => current),
     signIn: vi.fn(async ({ email }: { email: string; password: string }) => {
       const account = accounts[email];

@@ -16,5 +16,6 @@ export {
   createAdminApi,
   type AdminApi,
   type AdminApiOptions,
+  type MetricsPeriod,
   type ModerationQuery,
 } from "./admin-api.ts";
